@@ -62,6 +62,9 @@ where
 const COMMAND_OUTPUT_0: u8 = 0x02;
 const COMMAND_OUTPUT_1: u8 = 0x03;
 
+const COMMAND_POLARITY_0: u8 = 0x04;
+const COMMAND_POLARITY_1: u8 = 0x05;
+
 const COMMAND_CONF_0: u8 = 0x06;
 const COMMAND_CONF_1: u8 = 0x07;
 
@@ -139,6 +142,20 @@ where
         self.write_output(bank)
     }
 
+    /// Reveres/Resets the input polarity of the given pin
+    pub fn reverse_polarity(
+        &mut self,
+        bank: Bank,
+        id: PinID,
+        reversed: bool,
+    ) -> Result<(), <B as Write>::Error> {
+        match bank {
+            Bank::Bank0 => self.polarity_0.set(id as usize, reversed),
+            Bank::Bank1 => self.polarity_1.set(id as usize, reversed),
+        };
+        self.write_polarity(bank)
+    }
+
     /// Writes the configuration register of the given bank
     fn write_conf(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
@@ -152,6 +169,14 @@ where
         match bank {
             Bank::Bank0 => self.bus.write(COMMAND_OUTPUT_0, &[self.output_0.as_value().to_owned()]),
             Bank::Bank1 => self.bus.write(COMMAND_OUTPUT_1, &[self.output_1.as_value().to_owned()]),
+        }
+    }
+
+    /// Writes the polarity register of the given bank
+    fn write_polarity(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+        match bank {
+            Bank::Bank0 => self.bus.write(COMMAND_POLARITY_0, &[self.polarity_0.as_value().to_owned()]),
+            Bank::Bank1 => self.bus.write(COMMAND_POLARITY_1, &[self.polarity_1.as_value().to_owned()]),
         }
     }
 }

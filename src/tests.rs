@@ -347,3 +347,37 @@ fn test_set_state_all_high_bank1() {
     let mut expander = PCA9539::new(i2c_bus);
     expander.set_state_all(Bank1, true).unwrap();
 }
+
+#[test]
+fn test_reverse_polarity_bank0() {
+    let mut i2c_bus = MockI2CBus::new();
+
+    i2c_bus.expect_write().times(1).returning(move |address, data| {
+        assert_eq!(0x04, address);
+
+        assert_eq!(1, data.len());
+        assert_eq!(0b0000_0100, data[0]);
+        Ok(())
+    });
+
+    i2c_bus.expect_write().times(1).returning(move |address, data| {
+        assert_eq!(0x04, address);
+
+        assert_eq!(1, data.len());
+        assert_eq!(0b0001_0100, data[0]);
+        Ok(())
+    });
+
+    i2c_bus.expect_write().times(1).returning(move |address, data| {
+        assert_eq!(0x04, address);
+
+        assert_eq!(1, data.len());
+        assert_eq!(0b0001_0000, data[0]);
+        Ok(())
+    });
+
+    let mut expander = PCA9539::new(i2c_bus);
+    expander.reverse_polarity(Bank0, Pin2, true).unwrap();
+    expander.reverse_polarity(Bank0, Pin4, true).unwrap();
+    expander.reverse_polarity(Bank0, Pin2, false).unwrap();
+}

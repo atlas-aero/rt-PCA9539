@@ -11,7 +11,7 @@ readme = "README.md"
 documentation = "https://docs.rs/pca9539"
 
 [dependencies]
-embedded-hal = "0.2.7"
+embedded-hal = { version = "0.2.7", features = ["unproven"] }
 bitmaps = { version = "3.1.0", default-features = false }
 
 [dev-dependencies]

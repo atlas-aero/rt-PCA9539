@@ -1,16 +1,21 @@
+use crate::guard::LockFreeGuard;
+use crate::pin::RegularPin;
 use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
 use bitmaps::Bitmap;
+use core::cell::RefCell;
 use core::fmt::{Debug, Formatter};
 use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
 
 /// GPIO bank. PCA9539 has two with 7 pins each
+#[derive(Copy, Clone)]
 pub enum Bank {
     Bank0,
     Bank1,
 }
 
 /// GPIO pin ID. Builds together with bank an unique pin identification.
+#[derive(Copy, Clone)]
 pub enum PinID {
     Pin0 = 0,
     Pin1 = 1,
@@ -102,6 +107,12 @@ where
         expander.configuration_1.invert();
 
         expander
+    }
+
+    /// Returns an individual pin
+    /// **The library does not prevent multiple parallel instances of the same pin.**
+    pub fn get_pin(&mut self, bank: Bank, id: PinID) -> RegularPin<B, LockFreeGuard<B>> {
+        RegularPin::new(LockFreeGuard::new(RefCell::new(self)), bank, id)
     }
 
     /// Switches the given pin to the input/output mode by adjusting the configuration register

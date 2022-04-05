@@ -2,8 +2,7 @@ use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
 use bitmaps::Bitmap;
 use core::fmt::{Debug, Formatter};
-use embedded_hal::blocking::i2c::{SevenBitAddress, Write};
-use embedded_hal::serial::Read;
+use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
 
 /// GPIO bank. PCA9539 has two with 7 pins each
 pub enum Bank {
@@ -65,7 +64,7 @@ where
 /// Reading input state consists of one write, followed by a read operation
 pub enum RefreshInputError<B: Write + Read<u8>> {
     WriteError(<B as Write>::Error),
-    ReadError(nb::Error<<B as Read<u8>>::Error>),
+    ReadError(<B as Read>::Error),
 }
 
 const COMMAND_INPUT_0: u8 = 0x00;
@@ -191,10 +190,14 @@ where
             return Err(RefreshInputError::WriteError(result.unwrap_err()));
         }
 
-        match self.bus.read() {
-            Ok(byte) => Ok(byte),
-            Err(error) => Err(RefreshInputError::ReadError(error)),
+        let mut buffer: [u8; 1] = [0x0; 1];
+        let result = self.bus.read(command, &mut buffer);
+
+        if result.is_err() {
+            return Err(RefreshInputError::ReadError(result.unwrap_err()));
         }
+
+        Ok(buffer[0])
     }
 
     /// Writes the configuration register of the given bank

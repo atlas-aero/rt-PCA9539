@@ -4,6 +4,8 @@
 extern crate alloc;
 
 pub mod expander;
+pub mod guard;
+pub mod pin;
 
 #[cfg(test)]
 mod mocks;

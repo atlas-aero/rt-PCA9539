@@ -392,7 +392,13 @@ fn test_refresh_input_state_bank0_success() {
         Ok(())
     });
 
-    i2c_bus.expect_read().times(1).returning(move || Ok(0b0001_0000));
+    i2c_bus.expect_read().times(1).returning(move |address, buffer| {
+        assert_eq!(0x00, address);
+        assert_eq!(1, buffer.len());
+        buffer[0] = 0b0001_0000;
+
+        Ok(())
+    });
 
     let mut expander = PCA9539::new(i2c_bus);
     expander.refresh_input_state(Bank0).unwrap();
@@ -407,7 +413,13 @@ fn test_refresh_input_state_bank1_success() {
         Ok(())
     });
 
-    i2c_bus.expect_read().times(1).returning(move || Ok(0b0001_0000));
+    i2c_bus.expect_read().times(1).returning(move |address, buffer| {
+        assert_eq!(0x01, address);
+        assert_eq!(1, buffer.len());
+        buffer[0] = 0b0001_0000;
+
+        Ok(())
+    });
 
     let mut expander = PCA9539::new(i2c_bus);
     expander.refresh_input_state(Bank1).unwrap();
@@ -437,10 +449,10 @@ fn test_refresh_input_state_read_error() {
         Ok(())
     });
 
-    i2c_bus
-        .expect_read()
-        .times(1)
-        .returning(move || nb::Result::Err(nb::Error::Other(ReadError::Error1)));
+    i2c_bus.expect_read().times(1).returning(move |address, _| {
+        assert_eq!(0x00, address);
+        Err(ReadError::Error1)
+    });
 
     let mut expander = PCA9539::new(i2c_bus);
     let result = expander.refresh_input_state(Bank0);
@@ -457,7 +469,13 @@ fn test_is_pin_high_bank0() {
         Ok(())
     });
 
-    i2c_bus.expect_read().times(1).returning(move || Ok(0b0111_1010));
+    i2c_bus.expect_read().times(1).returning(move |address, buffer| {
+        assert_eq!(0x00, address);
+        assert_eq!(1, buffer.len());
+        buffer[0] = 0b0111_1010;
+
+        Ok(())
+    });
 
     let mut expander = PCA9539::new(i2c_bus);
     expander.refresh_input_state(Bank0).unwrap();
@@ -482,7 +500,13 @@ fn test_is_pin_high_bank1() {
         Ok(())
     });
 
-    i2c_bus.expect_read().times(1).returning(move || Ok(0b0100_0111));
+    i2c_bus.expect_read().times(1).returning(move |address, buffer| {
+        assert_eq!(0x01, address);
+        assert_eq!(1, buffer.len());
+        buffer[0] = 0b0100_0111;
+
+        Ok(())
+    });
 
     let mut expander = PCA9539::new(i2c_bus);
     expander.refresh_input_state(Bank1).unwrap();

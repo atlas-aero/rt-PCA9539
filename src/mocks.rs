@@ -1,7 +1,5 @@
-use embedded_hal::blocking::i2c::{SevenBitAddress, Write};
-use embedded_hal::serial::Read;
+use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
 use mockall::mock;
-use nb;
 
 #[derive(Debug, PartialEq)]
 #[allow(unused)]
@@ -24,8 +22,8 @@ mock! {
         fn write(&mut self, address: SevenBitAddress, bytes: &[u8]) -> Result<(), WriteError>;
     }
 
-    impl Read<u8> for I2CBus {
+    impl Read<SevenBitAddress> for I2CBus {
         type Error = ReadError;
-        fn read(&mut self) -> nb::Result<u8, ReadError>;
+        fn read(&mut self, address: SevenBitAddress, buffer: &mut [u8]) -> Result<(), ReadError>;
     }
 }

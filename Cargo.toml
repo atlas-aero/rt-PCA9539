@@ -13,6 +13,7 @@ documentation = "https://docs.rs/pca9539"
 [dependencies]
 embedded-hal = "0.2.7"
 nb = "1.0.0"
+bitmaps = { version = "3.1.0", default-features = false }
 
 [dev-dependencies]
 mockall = "0.11.0"

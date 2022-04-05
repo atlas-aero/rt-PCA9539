@@ -1,3 +1,5 @@
+use alloc::borrow::ToOwned;
+use bitmaps::Bitmap;
 use embedded_hal::blocking::i2c::{SevenBitAddress, Write};
 use embedded_hal::serial::Read;
 
@@ -19,6 +21,13 @@ pub enum PinID {
     Pin7 = 7,
 }
 
+/// GPIO mode
+#[derive(PartialEq)]
+pub enum Mode {
+    Output,
+    Input,
+}
+
 pub struct PCA9539<B>
 where
     B: Write<SevenBitAddress> + Read<SevenBitAddress>,
@@ -27,31 +36,27 @@ where
 
     /// First input register
     #[allow(unused)]
-    pub(crate) input_0: u8,
+    input_0: Bitmap<8>,
     /// Second input register
     #[allow(unused)]
-    pub(crate) input_1: u8,
+    input_1: Bitmap<8>,
 
     /// First output register
-    #[allow(unused)]
-    pub(crate) output_0: u8,
+    output_0: Bitmap<8>,
     /// Second output register
-    #[allow(unused)]
-    pub(crate) output_1: u8,
+    output_1: Bitmap<8>,
 
     /// First polarity inversion register
     #[allow(unused)]
-    pub(crate) polarity_0: u8,
+    polarity_0: Bitmap<8>,
     /// Second polarity inversion register
     #[allow(unused)]
-    pub(crate) polarity_1: u8,
+    polarity_1: Bitmap<8>,
 
     /// First configuration register
-    #[allow(unused)]
-    pub(crate) configuration_0: u8,
+    configuration_0: Bitmap<8>,
     /// Second configuration register
-    #[allow(unused)]
-    pub(crate) configuration_1: u8,
+    configuration_1: Bitmap<8>,
 }
 
 const COMMAND_OUTPUT_0: u8 = 0x02;
@@ -65,106 +70,97 @@ where
     B: Write<SevenBitAddress> + Read<SevenBitAddress>,
 {
     pub fn new(bus: B) -> Self {
-        PCA9539 {
+        let mut expander = Self {
             bus,
-            input_0: 0x0,
-            input_1: 0x0,
-            output_0: 0xff,
-            output_1: 0xff,
-            polarity_0: 0x0,
-            polarity_1: 0x0,
-            configuration_0: 0xff,
-            configuration_1: 0xff,
-        }
+            input_0: Bitmap::<8>::new(),
+            input_1: Bitmap::<8>::new(),
+            output_0: Bitmap::<8>::new(),
+            output_1: Bitmap::<8>::new(),
+            polarity_0: Bitmap::<8>::new(),
+            polarity_1: Bitmap::<8>::new(),
+            configuration_0: Bitmap::<8>::new(),
+            configuration_1: Bitmap::<8>::new(),
+        };
+
+        expander.output_0.invert();
+        expander.output_1.invert();
+        expander.configuration_0.invert();
+        expander.configuration_1.invert();
+
+        expander
     }
 
-    /// Switches the given pin to output mode by adjusting the configuration register
-    pub fn output_mode(&mut self, bank: Bank, id: PinID) -> Result<(), <B as Write>::Error> {
+    /// Switches the given pin to the input/output mode by adjusting the configuration register
+    pub fn set_mode(&mut self, bank: Bank, id: PinID, mode: Mode) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.write_conf0(self.configuration_0 & !(1 << id as u8)),
-            Bank::Bank1 => self.write_conf1(self.configuration_1 & !(1 << id as u8)),
-        }
+            Bank::Bank0 => self.configuration_0.set(id as usize, mode.into()),
+            Bank::Bank1 => self.configuration_1.set(id as usize, mode.into()),
+        };
+        self.write_conf(bank)
     }
 
-    /// Switches all pins of the given bank to output mode1
-    pub fn all_output(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+    /// Switches all pins of the given bank to output/input mode1
+    pub fn set_mode_all(&mut self, bank: Bank, mode: Mode) -> Result<(), <B as Write>::Error> {
+        let mut bitset = Bitmap::<8>::new();
+
+        if mode == Mode::Input {
+            bitset.invert();
+        }
+
         match bank {
-            Bank::Bank0 => self.write_conf0(0x0),
-            Bank::Bank1 => self.write_conf1(0x0),
-        }
+            Bank::Bank0 => self.configuration_0 = bitset,
+            Bank::Bank1 => self.configuration_1 = bitset,
+        };
+        self.write_conf(bank)
     }
 
-    /// Switches the given pin to input mode by adjusting the configuration register
-    pub fn input_mode(&mut self, bank: Bank, id: PinID) -> Result<(), <B as Write>::Error> {
+    /// Sets the given output state by adjusting the output register
+    /// Pin needs to be in OUTPUT mode for correct electrical state
+    pub fn set_state(&mut self, bank: Bank, id: PinID, is_high: bool) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.write_conf0(self.configuration_0 | 1 << id as u8),
-            Bank::Bank1 => self.write_conf1(self.configuration_1 | 1 << id as u8),
-        }
+            Bank::Bank0 => self.output_0.set(id as usize, is_high),
+            Bank::Bank1 => self.output_1.set(id as usize, is_high),
+        };
+        self.write_output(bank)
     }
 
-    /// Switches all pins of the given bank to input mode
-    pub fn all_input(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+    /// Sets output state for all pins of a bank
+    pub fn set_state_all(&mut self, bank: Bank, is_high: bool) -> Result<(), <B as Write>::Error> {
+        let mut bitset = Bitmap::<8>::new();
+
+        if is_high {
+            bitset.invert();
+        }
+
         match bank {
-            Bank::Bank0 => self.write_conf0(0xff),
-            Bank::Bank1 => self.write_conf1(0xff),
-        }
+            Bank::Bank0 => self.output_0 = bitset,
+            Bank::Bank1 => self.output_1 = bitset,
+        };
+        self.write_output(bank)
     }
 
-    /// Sets the given pin to HIGH
-    /// The given pins needs to be in output note, otherwise the change has not electrical effect
-    pub fn set_high(&mut self, bank: Bank, id: PinID) -> Result<(), <B as Write>::Error> {
+    /// Writes the configuration register of the given bank
+    fn write_conf(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.write_output0(self.output_0 | 1 << id as u8),
-            Bank::Bank1 => self.write_output1(self.output_1 | 1 << id as u8),
+            Bank::Bank0 => self.bus.write(COMMAND_CONF_0, &[self.configuration_0.as_value().to_owned()]),
+            Bank::Bank1 => self.bus.write(COMMAND_CONF_1, &[self.configuration_1.as_value().to_owned()]),
         }
     }
 
-    /// Sets the given pin to LOW
-    /// The given pins needs to be in output note, otherwise the change has not electrical effect
-    pub fn set_low(&mut self, bank: Bank, id: PinID) -> Result<(), <B as Write>::Error> {
+    /// Writes the output register of the given bank
+    fn write_output(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.write_output0(self.output_0 & !(1 << id as u8)),
-            Bank::Bank1 => self.write_output1(self.output_1 & !(1 << id as u8)),
+            Bank::Bank0 => self.bus.write(COMMAND_OUTPUT_0, &[self.output_0.as_value().to_owned()]),
+            Bank::Bank1 => self.bus.write(COMMAND_OUTPUT_1, &[self.output_1.as_value().to_owned()]),
         }
     }
+}
 
-    /// Sets all pins of the given bank to high state
-    pub fn set_all_high(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
-        match bank {
-            Bank::Bank0 => self.write_output0(0xff),
-            Bank::Bank1 => self.write_output1(0xff),
+impl From<Mode> for bool {
+    fn from(mode: Mode) -> Self {
+        match mode {
+            Mode::Output => false,
+            Mode::Input => true,
         }
-    }
-
-    /// Sets all pins of the given bank to high state
-    pub fn set_all_low(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
-        match bank {
-            Bank::Bank0 => self.write_output0(0x0),
-            Bank::Bank1 => self.write_output1(0x0),
-        }
-    }
-
-    /// Writes the first output state byte
-    fn write_output0(&mut self, conf: u8) -> Result<(), <B as Write>::Error> {
-        self.output_0 = conf;
-        self.bus.write(COMMAND_OUTPUT_0, &[self.output_0])
-    }
-
-    /// Writes the second output state byte
-    fn write_output1(&mut self, conf: u8) -> Result<(), <B as Write>::Error> {
-        self.output_1 = conf;
-        self.bus.write(COMMAND_OUTPUT_1, &[self.output_1])
-    }
-
-    /// Writes the first configuration byte
-    fn write_conf0(&mut self, conf: u8) -> Result<(), <B as Write>::Error> {
-        self.configuration_0 = conf;
-        self.bus.write(COMMAND_CONF_0, &[self.configuration_0])
-    }
-
-    /// Writes the second configuration byte
-    fn write_conf1(&mut self, conf: u8) -> Result<(), <B as Write>::Error> {
-        self.configuration_1 = conf;
-        self.bus.write(COMMAND_CONF_1, &[self.configuration_1])
     }
 }

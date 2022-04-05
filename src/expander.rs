@@ -1,5 +1,7 @@
 use alloc::borrow::ToOwned;
+use alloc::string::{String, ToString};
 use bitmaps::Bitmap;
+use core::fmt::{Debug, Formatter};
 use embedded_hal::blocking::i2c::{SevenBitAddress, Write};
 use embedded_hal::serial::Read;
 
@@ -58,6 +60,16 @@ where
     /// Second configuration register
     configuration_1: Bitmap<8>,
 }
+
+/// Wrapped I2C error when refreshing input state
+/// Reading input state consists of one write, followed by a read operation
+pub enum RefreshInputError<B: Write + Read<u8>> {
+    WriteError(<B as Write>::Error),
+    ReadError(nb::Error<<B as Read<u8>>::Error>),
+}
+
+const COMMAND_INPUT_0: u8 = 0x00;
+const COMMAND_INPUT_1: u8 = 0x01;
 
 const COMMAND_OUTPUT_0: u8 = 0x02;
 const COMMAND_OUTPUT_1: u8 = 0x03;
@@ -143,17 +155,46 @@ where
     }
 
     /// Reveres/Resets the input polarity of the given pin
-    pub fn reverse_polarity(
-        &mut self,
-        bank: Bank,
-        id: PinID,
-        reversed: bool,
-    ) -> Result<(), <B as Write>::Error> {
+    pub fn reverse_polarity(&mut self, bank: Bank, id: PinID, reversed: bool) -> Result<(), <B as Write>::Error> {
         match bank {
             Bank::Bank0 => self.polarity_0.set(id as usize, reversed),
             Bank::Bank1 => self.polarity_1.set(id as usize, reversed),
         };
         self.write_polarity(bank)
+    }
+
+    /// Refreshes the input state of the given bank
+    pub fn refresh_input_state(&mut self, bank: Bank) -> Result<(), RefreshInputError<B>> {
+        match bank {
+            Bank::Bank0 => self.input_0 = Bitmap::from_value(self.read_input_register(COMMAND_INPUT_0)?),
+            Bank::Bank1 => self.input_1 = Bitmap::from_value(self.read_input_register(COMMAND_INPUT_1)?),
+        };
+
+        Ok(())
+    }
+
+    /// Returns true if the given pin input is high
+    /// Pin needs to be in INPUT mode
+    /// This method is using the cached register, for a updated result `refresh_input_state()` needs
+    /// to be called beforehand
+    pub fn is_pin_high(&self, bank: Bank, id: PinID) -> bool {
+        match bank {
+            Bank::Bank0 => self.input_0.get(id as usize),
+            Bank::Bank1 => self.input_1.get(id as usize),
+        }
+    }
+
+    /// Reads and returns the given input register
+    fn read_input_register(&mut self, command: u8) -> Result<u8, RefreshInputError<B>> {
+        let result = self.bus.write(command, &[0x0]);
+        if result.is_err() {
+            return Err(RefreshInputError::WriteError(result.unwrap_err()));
+        }
+
+        match self.bus.read() {
+            Ok(byte) => Ok(byte),
+            Err(error) => Err(RefreshInputError::ReadError(error)),
+        }
     }
 
     /// Writes the configuration register of the given bank
@@ -186,6 +227,24 @@ impl From<Mode> for bool {
         match mode {
             Mode::Output => false,
             Mode::Input => true,
+        }
+    }
+}
+
+impl<B: Read<u8> + Write> Debug for RefreshInputError<B> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            RefreshInputError::WriteError(_) => f.write_str("RefreshInputError::WriteError"),
+            RefreshInputError::ReadError(_) => f.write_str("RefreshInputError::ReadError"),
+        }
+    }
+}
+
+impl<B: Read<u8> + Write> ToString for RefreshInputError<B> {
+    fn to_string(&self) -> String {
+        match self {
+            RefreshInputError::WriteError(_) => "WriteError".to_string(),
+            RefreshInputError::ReadError(_) => "ReadError".to_string(),
         }
     }
 }

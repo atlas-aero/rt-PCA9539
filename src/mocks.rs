@@ -16,6 +16,7 @@ pub enum ReadError {
 }
 
 mock! {
+    #[derive(Debug)]
     pub I2CBus{}
 
     impl Write<SevenBitAddress> for I2CBus {

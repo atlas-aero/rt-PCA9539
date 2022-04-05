@@ -2,7 +2,8 @@ use crate::expander::Bank::{Bank0, Bank1};
 use crate::expander::Mode::{Input, Output};
 use crate::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4, Pin5, Pin6, Pin7};
 use crate::expander::PCA9539;
-use crate::mocks::MockI2CBus;
+use crate::mocks::{MockI2CBus, ReadError, WriteError};
+use alloc::string::ToString;
 
 #[test]
 fn test_expander_output_mode_bank0() {
@@ -380,4 +381,119 @@ fn test_reverse_polarity_bank0() {
     expander.reverse_polarity(Bank0, Pin2, true).unwrap();
     expander.reverse_polarity(Bank0, Pin4, true).unwrap();
     expander.reverse_polarity(Bank0, Pin2, false).unwrap();
+}
+
+#[test]
+fn test_refresh_input_state_bank0_success() {
+    let mut i2c_bus = MockI2CBus::new();
+
+    i2c_bus.expect_write().times(1).returning(move |address, _| {
+        assert_eq!(0x00, address);
+        Ok(())
+    });
+
+    i2c_bus.expect_read().times(1).returning(move || Ok(0b0001_0000));
+
+    let mut expander = PCA9539::new(i2c_bus);
+    expander.refresh_input_state(Bank0).unwrap();
+}
+
+#[test]
+fn test_refresh_input_state_bank1_success() {
+    let mut i2c_bus = MockI2CBus::new();
+
+    i2c_bus.expect_write().times(1).returning(move |address, _| {
+        assert_eq!(0x01, address);
+        Ok(())
+    });
+
+    i2c_bus.expect_read().times(1).returning(move || Ok(0b0001_0000));
+
+    let mut expander = PCA9539::new(i2c_bus);
+    expander.refresh_input_state(Bank1).unwrap();
+}
+
+#[test]
+fn test_refresh_input_state_write_error() {
+    let mut i2c_bus = MockI2CBus::new();
+
+    i2c_bus.expect_write().times(1).returning(move |address, _| {
+        assert_eq!(0x00, address);
+        Err(WriteError::Error1)
+    });
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let result = expander.refresh_input_state(Bank0);
+
+    assert_eq!("WriteError", result.unwrap_err().to_string());
+}
+
+#[test]
+fn test_refresh_input_state_read_error() {
+    let mut i2c_bus = MockI2CBus::new();
+
+    i2c_bus.expect_write().times(1).returning(move |address, _| {
+        assert_eq!(0x00, address);
+        Ok(())
+    });
+
+    i2c_bus
+        .expect_read()
+        .times(1)
+        .returning(move || nb::Result::Err(nb::Error::Other(ReadError::Error1)));
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let result = expander.refresh_input_state(Bank0);
+
+    assert_eq!("ReadError", result.unwrap_err().to_string());
+}
+
+#[test]
+fn test_is_pin_high_bank0() {
+    let mut i2c_bus = MockI2CBus::new();
+
+    i2c_bus.expect_write().times(1).returning(move |address, _| {
+        assert_eq!(0x00, address);
+        Ok(())
+    });
+
+    i2c_bus.expect_read().times(1).returning(move || Ok(0b0111_1010));
+
+    let mut expander = PCA9539::new(i2c_bus);
+    expander.refresh_input_state(Bank0).unwrap();
+
+    assert!(!expander.is_pin_high(Bank0, Pin7));
+    assert!(expander.is_pin_high(Bank0, Pin6));
+    assert!(expander.is_pin_high(Bank0, Pin5));
+    assert!(expander.is_pin_high(Bank0, Pin4));
+
+    assert!(expander.is_pin_high(Bank0, Pin3));
+    assert!(!expander.is_pin_high(Bank0, Pin2));
+    assert!(expander.is_pin_high(Bank0, Pin1));
+    assert!(!expander.is_pin_high(Bank0, Pin0));
+}
+
+#[test]
+fn test_is_pin_high_bank1() {
+    let mut i2c_bus = MockI2CBus::new();
+
+    i2c_bus.expect_write().times(1).returning(move |address, _| {
+        assert_eq!(0x01, address);
+        Ok(())
+    });
+
+    i2c_bus.expect_read().times(1).returning(move || Ok(0b0100_0111));
+
+    let mut expander = PCA9539::new(i2c_bus);
+    expander.refresh_input_state(Bank1).unwrap();
+
+    assert!(!expander.is_pin_high(Bank1, Pin7));
+    assert!(expander.is_pin_high(Bank1, Pin6));
+    assert!(!expander.is_pin_high(Bank1, Pin5));
+    assert!(!expander.is_pin_high(Bank1, Pin4));
+
+    assert!(!expander.is_pin_high(Bank1, Pin3));
+    assert!(expander.is_pin_high(Bank1, Pin2));
+    assert!(expander.is_pin_high(Bank1, Pin1));
+    assert!(expander.is_pin_high(Bank1, Pin0));
 }

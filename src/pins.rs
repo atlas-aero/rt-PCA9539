@@ -74,6 +74,24 @@ where
     pub(crate) access_mode: PhantomData<A>,
 }
 
+impl<'a, B, R, A> Pin<'a, B, R, Input, A>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+    A: AccessMode,
+{
+    /// Reverses/Resets the input polarity
+    pub fn invert_polarity(&self, invert: bool) -> Result<(), <B as Write>::Error> {
+        let mut result = Ok(());
+
+        self.expander.access(|expander| {
+            result = expander.reverse_polarity(self.bank, self.id, invert);
+        });
+
+        result
+    }
+}
+
 impl<'a, B, R, A> Pin<'a, B, R, Output, A>
 where
     B: Write + Read,

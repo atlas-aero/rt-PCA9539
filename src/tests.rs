@@ -866,3 +866,61 @@ fn test_refreshable_pin_toggle_no_update() {
 
     pin.toggle().unwrap();
 }
+
+#[test]
+fn test_regular_pin_invert_polarity() {
+    let i2c_bus = BusMockBuilder::new()
+        .expect_write(1, 0x04, 0b0001_0000)
+        .expect_write(1, 0x04, 0b0000_0000)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+
+    let pins = expander.pins();
+    let pin = pins.get_pin(Bank0, Pin4);
+
+    pin.invert_polarity(true).unwrap();
+    pin.invert_polarity(false).unwrap();
+}
+
+#[test]
+fn test_regular_pin_invert_polarity_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x04).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+
+    let pins = expander.pins();
+    let pin = pins.get_pin(Bank0, Pin4);
+
+    let result = pin.invert_polarity(true);
+    assert_eq!(WriteError::Error1, result.unwrap_err());
+}
+
+#[test]
+fn test_refreshable_pin_invert_polarity() {
+    let i2c_bus = BusMockBuilder::new()
+        .expect_write(1, 0x05, 0b0010_0000)
+        .expect_write(1, 0x05, 0b0000_0000)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+
+    let pins = expander.pins();
+    let pin = pins.get_refreshable_pin(Bank1, Pin5);
+
+    pin.invert_polarity(true).unwrap();
+    pin.invert_polarity(false).unwrap();
+}
+
+#[test]
+fn test_refreshable_pin_invert_polarity_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x05).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+
+    let pins = expander.pins();
+    let pin = pins.get_refreshable_pin(Bank1, Pin4);
+
+    let result = pin.invert_polarity(true);
+    assert_eq!(WriteError::Error1, result.unwrap_err());
+}

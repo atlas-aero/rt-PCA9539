@@ -4,7 +4,7 @@ use crate::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4, Pin5, Pin6, Pin7};
 use crate::expander::PCA9539;
 use crate::mocks::{BusMockBuilder, WriteError};
 use alloc::string::ToString;
-use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
+use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin, ToggleableOutputPin};
 
 #[test]
 fn test_expander_output_mode_bank0() {
@@ -808,4 +808,61 @@ fn test_refreshable_pin_into_input_pin_mode_error() {
     let result = pins.get_refreshable_pin(Bank0, Pin0).into_output_pin(PinState::High);
 
     assert!(result.is_err())
+}
+
+#[test]
+fn test_regular_pin_toggle() {
+    let i2c_bus = BusMockBuilder::new()
+        .mock_write(2) // Mode switch
+        .expect_write(1, 0x02, 0b1111_1011)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin = pins.get_pin(Bank0, Pin2).into_output_pin(PinState::High).unwrap();
+
+    pin.toggle().unwrap();
+}
+
+#[test]
+fn test_regular_pin_toggle_error() {
+    let i2c_bus = BusMockBuilder::new()
+        .mock_write(2) // Mode switch
+        .write_error(0x2)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin = pins.get_pin(Bank0, Pin2).into_output_pin(PinState::High).unwrap();
+
+    let result = pin.toggle();
+    assert_eq!(WriteError::Error1, result.unwrap_err());
+}
+
+#[test]
+fn test_refreshable_pin_toggle() {
+    let i2c_bus = BusMockBuilder::new()
+        .mock_write(2) // Mode switch
+        .expect_write(1, 0x02, 0b1111_0111)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin = pins.get_refreshable_pin(Bank0, Pin3).into_output_pin(PinState::High).unwrap();
+
+    pin.toggle().unwrap();
+    pin.update_bank().unwrap();
+}
+
+#[test]
+fn test_refreshable_pin_toggle_no_update() {
+    let i2c_bus = BusMockBuilder::new()
+        .mock_write(2) // Mode switch
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin = pins.get_refreshable_pin(Bank0, Pin3).into_output_pin(PinState::High).unwrap();
+
+    pin.toggle().unwrap();
 }

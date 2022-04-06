@@ -3,7 +3,7 @@ use crate::guard::RefGuard;
 use crate::pins::{Input, Output, Pin, PinMode, RegularAccessMode};
 use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
-use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
+use embedded_hal::digital::v2::{toggleable, InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
 
 impl<'a, B, R> Pin<'a, B, R, Input, RegularAccessMode>
 where
@@ -88,6 +88,13 @@ where
     fn is_set_low(&self) -> Result<bool, Self::Error> {
         Ok(!self.is_pin_output_high())
     }
+}
+
+impl<'a, B, R> toggleable::Default for Pin<'a, B, R, Output, RegularAccessMode>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+{
 }
 
 impl<'a, B, M, R> IoPin<Pin<'a, B, R, Input, RegularAccessMode>, Pin<'a, B, R, Output, RegularAccessMode>>

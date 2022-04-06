@@ -4,7 +4,7 @@ use crate::pins::{Input, Output, Pin, PinMode, RefreshMode};
 use core::convert::Infallible;
 use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
-use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
+use embedded_hal::digital::v2::{toggleable, InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
 
 impl<'a, B, R> Pin<'a, B, R, Input, RefreshMode>
 where
@@ -131,6 +131,13 @@ where
     fn is_set_low(&self) -> Result<bool, Self::Error> {
         Ok(!self.is_pin_output_high())
     }
+}
+
+impl<'a, B, R> toggleable::Default for Pin<'a, B, R, Output, RefreshMode>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+{
 }
 
 impl<'a, B, M, R> IoPin<Pin<'a, B, R, Input, RefreshMode>, Pin<'a, B, R, Output, RefreshMode>>

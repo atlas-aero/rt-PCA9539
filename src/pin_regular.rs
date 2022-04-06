@@ -1,37 +1,27 @@
 use crate::expander::{Bank, PinID, RefreshInputError};
 use crate::guard::RefGuard;
+use crate::pins::{Pin, RegularAccessMode};
 use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
 use embedded_hal::digital::v2::InputPin;
 
-/// GPIO pin, which synchronously updates its status via I2C
-pub struct RegularPin<B, R>
+impl<'a, B, R> Pin<'a, B, R, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
 {
-    expander: R,
-    bus: PhantomData<fn(B) -> B>,
-    bank: Bank,
-    id: PinID,
-}
-
-impl<B, R> RegularPin<B, R>
-where
-    B: Write + Read,
-    R: RefGuard<B>,
-{
-    pub fn new(expander: R, bank: Bank, id: PinID) -> Self {
-        RegularPin {
+    pub fn regular(expander: &'a R, bank: Bank, id: PinID) -> Self {
+        Pin {
             expander,
             bus: PhantomData,
+            access_mode: PhantomData,
             bank,
             id,
         }
     }
 }
 
-impl<B, R> InputPin for RegularPin<B, R>
+impl<'a, B, R> InputPin for Pin<'a, B, R, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,

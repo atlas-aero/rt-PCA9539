@@ -1,5 +1,5 @@
 use crate::guard::LockFreeGuard;
-use crate::pin::RegularPin;
+use crate::pins::Pins;
 use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
 use bitmaps::Bitmap;
@@ -109,10 +109,9 @@ where
         expander
     }
 
-    /// Returns an individual pin
-    /// **The library does not prevent multiple parallel instances of the same pin.**
-    pub fn get_pin(&mut self, bank: Bank, id: PinID) -> RegularPin<B, LockFreeGuard<B>> {
-        RegularPin::new(LockFreeGuard::new(RefCell::new(self)), bank, id)
+    /// Returns a container for fetching individual pins
+    pub fn pins(&mut self) -> Pins<B, LockFreeGuard<B>> {
+        Pins::new(LockFreeGuard::new(RefCell::new(self)))
     }
 
     /// Switches the given pin to the input/output mode by adjusting the configuration register

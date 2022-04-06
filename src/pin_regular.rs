@@ -1,11 +1,11 @@
-use crate::expander::{Bank, PinID, RefreshInputError};
+use crate::expander::{Bank, Mode, PinID, RefreshInputError};
 use crate::guard::RefGuard;
-use crate::pins::{Pin, RegularAccessMode};
+use crate::pins::{Input, Output, Pin, PinMode, RegularAccessMode};
 use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
-use embedded_hal::digital::v2::{InputPin, OutputPin, PinState, StatefulOutputPin};
+use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
 
-impl<'a, B, R> Pin<'a, B, R, RegularAccessMode>
+impl<'a, B, R> Pin<'a, B, R, Input, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -14,6 +14,7 @@ where
         Pin {
             expander,
             bus: PhantomData,
+            mode: PhantomData,
             access_mode: PhantomData,
             bank,
             id,
@@ -21,7 +22,7 @@ where
     }
 }
 
-impl<'a, B, R> InputPin for Pin<'a, B, R, RegularAccessMode>
+impl<'a, B, R> InputPin for Pin<'a, B, R, Input, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -46,7 +47,7 @@ where
     }
 }
 
-impl<'a, B, R> OutputPin for Pin<'a, B, R, RegularAccessMode>
+impl<'a, B, R> OutputPin for Pin<'a, B, R, Output, RegularAccessMode>
 where
     B: Read + Write,
     R: RefGuard<B>,
@@ -73,7 +74,7 @@ where
     }
 }
 
-impl<'a, B, R> StatefulOutputPin for Pin<'a, B, R, RegularAccessMode>
+impl<'a, B, R> StatefulOutputPin for Pin<'a, B, R, Output, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -86,5 +87,44 @@ where
     /// As this is just acting on cached register data, its in fact Infallible
     fn is_set_low(&self) -> Result<bool, Self::Error> {
         Ok(!self.is_pin_output_high())
+    }
+}
+
+impl<'a, B, M, R> IoPin<Pin<'a, B, R, Input, RegularAccessMode>, Pin<'a, B, R, Output, RegularAccessMode>>
+    for Pin<'a, B, R, M, RegularAccessMode>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+    M: PinMode,
+{
+    type Error = <B as Write>::Error;
+
+    fn into_input_pin(self) -> Result<Pin<'a, B, R, Input, RegularAccessMode>, Self::Error> {
+        self.change_mode(Mode::Input)?;
+
+        Ok(Pin {
+            expander: self.expander,
+            bank: self.bank,
+            id: self.id,
+            bus: PhantomData,
+            mode: PhantomData,
+            access_mode: PhantomData,
+        })
+    }
+
+    fn into_output_pin(self, state: PinState) -> Result<Pin<'a, B, R, Output, RegularAccessMode>, Self::Error> {
+        self.change_mode(Mode::Input)?;
+
+        let mut pin = Pin {
+            expander: self.expander,
+            bank: self.bank,
+            id: self.id,
+            bus: PhantomData,
+            mode: PhantomData,
+            access_mode: PhantomData,
+        };
+
+        pin.set_state(state)?;
+        Ok(pin)
     }
 }

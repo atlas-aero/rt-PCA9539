@@ -1,4 +1,4 @@
-use crate::expander::{Bank, PinID};
+use crate::expander::{Bank, Mode, PinID};
 use crate::guard::RefGuard;
 use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
@@ -19,7 +19,7 @@ impl<B: Write + Read, R: RefGuard<B>> Pins<B, R> {
 
     /// Returns an individual pin, which state gets updated synchronously
     /// **The library does not prevent multiple parallel instances of the same pin.**
-    pub fn get_pin(&self, bank: Bank, id: PinID) -> Pin<B, R, RegularAccessMode> {
+    pub fn get_pin(&self, bank: Bank, id: PinID) -> Pin<B, R, Input, RegularAccessMode> {
         Pin::regular(&self.guard, bank, id)
     }
 
@@ -27,7 +27,7 @@ impl<B: Write + Read, R: RefGuard<B>> Pins<B, R> {
     /// The status is explicitly updated. This allows a more efficient status query and assignment,
     /// as the status is only updated once for all pins.
     /// **The library does not prevent multiple parallel instances of the same pin.**
-    pub fn get_refreshable_pin(&self, bank: Bank, id: PinID) -> Pin<B, R, RefreshMode> {
+    pub fn get_refreshable_pin(&self, bank: Bank, id: PinID) -> Pin<B, R, Input, RefreshMode> {
         Pin::refreshable(&self.guard, bank, id)
     }
 }
@@ -46,11 +46,23 @@ impl AccessMode for RegularAccessMode {}
 pub struct RefreshMode {}
 impl AccessMode for RefreshMode {}
 
+/// Current I/O mode. Either Input or Output.
+pub trait PinMode {}
+
+/// Input mode
+pub struct Input {}
+impl PinMode for Input {}
+
+/// Output mode
+pub struct Output {}
+impl PinMode for Output {}
+
 /// Individual GPIO pin
-pub struct Pin<'a, B, R, A>
+pub struct Pin<'a, B, R, M, A>
 where
     B: Write + Read,
     R: RefGuard<B>,
+    M: PinMode,
     A: AccessMode,
 {
     pub(crate) expander: &'a R,
@@ -58,10 +70,11 @@ where
     pub(crate) id: PinID,
 
     pub(crate) bus: PhantomData<fn(B) -> B>,
+    pub(crate) mode: PhantomData<M>,
     pub(crate) access_mode: PhantomData<A>,
 }
 
-impl<'a, B, R, A> Pin<'a, B, R, A>
+impl<'a, B, R, A> Pin<'a, B, R, Output, A>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -75,5 +88,24 @@ where
             .access(|expander| is_high = expander.is_pin_output_high(self.bank, self.id));
 
         is_high
+    }
+}
+
+impl<'a, B, M, R, A> Pin<'a, B, R, M, A>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+    M: PinMode,
+    A: AccessMode,
+{
+    /// Switches the pin to the given mode
+    pub(crate) fn change_mode(&self, mode: Mode) -> Result<(), <B as Write>::Error> {
+        let mut result = Ok(());
+
+        self.expander.access(|expander| {
+            result = expander.set_mode(self.bank, self.id, mode);
+        });
+
+        result
     }
 }

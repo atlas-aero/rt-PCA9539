@@ -28,7 +28,7 @@ pub enum PinID {
 }
 
 /// GPIO mode
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum Mode {
     Output,
     Input,

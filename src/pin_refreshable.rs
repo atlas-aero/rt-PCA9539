@@ -1,12 +1,12 @@
-use crate::expander::{Bank, PinID, RefreshInputError};
+use crate::expander::{Bank, Mode, PinID, RefreshInputError};
 use crate::guard::RefGuard;
-use crate::pins::{Pin, RefreshMode};
+use crate::pins::{Input, Output, Pin, PinMode, RefreshMode};
 use core::convert::Infallible;
 use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
-use embedded_hal::digital::v2::{InputPin, OutputPin, PinState, StatefulOutputPin};
+use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
 
-impl<'a, B, R> Pin<'a, B, R, RefreshMode>
+impl<'a, B, R> Pin<'a, B, R, Input, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -18,6 +18,7 @@ where
             bank,
             id,
             access_mode: PhantomData,
+            mode: PhantomData,
         }
     }
 
@@ -42,7 +43,13 @@ where
 
         result
     }
+}
 
+impl<'a, B, R> Pin<'a, B, R, Output, RefreshMode>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+{
     /// Updates the output state of all pins of the same bank
     pub fn update_bank(&self) -> Result<(), <B as Write>::Error> {
         self.update(self.bank)
@@ -66,7 +73,7 @@ where
     }
 }
 
-impl<'a, B, R> InputPin for Pin<'a, B, R, RefreshMode>
+impl<'a, B, R> InputPin for Pin<'a, B, R, Input, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -88,7 +95,7 @@ where
     }
 }
 
-impl<'a, B, R> OutputPin for Pin<'a, B, R, RefreshMode>
+impl<'a, B, R> OutputPin for Pin<'a, B, R, Output, RefreshMode>
 where
     B: Read + Write,
     R: RefGuard<B>,
@@ -112,7 +119,7 @@ where
     }
 }
 
-impl<'a, B, R> StatefulOutputPin for Pin<'a, B, R, RefreshMode>
+impl<'a, B, R> StatefulOutputPin for Pin<'a, B, R, Output, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -123,5 +130,45 @@ where
 
     fn is_set_low(&self) -> Result<bool, Self::Error> {
         Ok(!self.is_pin_output_high())
+    }
+}
+
+impl<'a, B, M, R> IoPin<Pin<'a, B, R, Input, RefreshMode>, Pin<'a, B, R, Output, RefreshMode>>
+    for Pin<'a, B, R, M, RefreshMode>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+    M: PinMode,
+{
+    type Error = <B as Write>::Error;
+
+    fn into_input_pin(self) -> Result<Pin<'a, B, R, Input, RefreshMode>, Self::Error> {
+        self.change_mode(Mode::Input)?;
+
+        Ok(Pin {
+            expander: self.expander,
+            bank: self.bank,
+            id: self.id,
+            bus: PhantomData,
+            mode: PhantomData,
+            access_mode: PhantomData,
+        })
+    }
+
+    fn into_output_pin(self, state: PinState) -> Result<Pin<'a, B, R, Output, RefreshMode>, Self::Error> {
+        self.change_mode(Mode::Input)?;
+
+        let mut pin = Pin {
+            expander: self.expander,
+            bank: self.bank,
+            id: self.id,
+            bus: PhantomData,
+            mode: PhantomData,
+            access_mode: PhantomData,
+        };
+
+        let _ = pin.set_state(state);
+        pin.update_bank()?;
+        Ok(pin)
     }
 }

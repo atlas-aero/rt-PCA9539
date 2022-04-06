@@ -1,6 +1,8 @@
 #[cfg(feature = "cortex-m")]
 use crate::guard::CsMutexGuard;
 use crate::guard::LockFreeGuard;
+#[cfg(feature = "spin")]
+use crate::guard::SpinGuard;
 use crate::pins::Pins;
 use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
@@ -8,8 +10,10 @@ use bitmaps::Bitmap;
 use core::cell::RefCell;
 use core::fmt::{Debug, Formatter};
 #[cfg(feature = "cortex-m")]
-use cortex_m::interrupt::Mutex;
+use cortex_m::interrupt::Mutex as CsMutex;
 use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
+#[cfg(feature = "spin")]
+use spin::Mutex as SpinMutex;
 
 /// GPIO bank. PCA9539 has two with 7 pins each
 #[derive(Copy, Clone)]
@@ -125,7 +129,16 @@ where
     /// Individual pins can be used across threads and interrupts, as long just running on a single core
     #[cfg(feature = "cortex-m")]
     pub fn pins_cs_mutex(&mut self) -> Pins<B, CsMutexGuard<B>> {
-        Pins::new(CsMutexGuard::new(Mutex::new(RefCell::new(self))))
+        Pins::new(CsMutexGuard::new(CsMutex::new(RefCell::new(self))))
+    }
+
+    /// Returns a pins container using a spin mutex
+    /// This is safe to use across threads and on multi-core applications
+    /// However, this requires a system supporting spin mutexes, which are generally only
+    /// available on systems with Atomic CAS
+    #[cfg(feature = "spin")]
+    pub fn pins_spin_mutex(&mut self) -> Pins<B, SpinGuard<B>> {
+        Pins::new(SpinGuard::new(SpinMutex::new(RefCell::new(self))))
     }
 
     /// Switches the given pin to the input/output mode by adjusting the configuration register

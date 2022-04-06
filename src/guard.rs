@@ -40,7 +40,7 @@ where
 }
 
 #[cfg(feature = "cortex-m")]
-use cortex_m::interrupt::Mutex;
+use cortex_m::interrupt::Mutex as CsMutex;
 
 /// Guard bases on Cortex-M mutex, which is using critical sections internally
 #[cfg(feature = "cortex-m")]
@@ -48,12 +48,12 @@ pub struct CsMutexGuard<'a, B>
 where
     B: Write + Read<u8>,
 {
-    expander: Mutex<RefCell<&'a mut PCA9539<B>>>,
+    expander: CsMutex<RefCell<&'a mut PCA9539<B>>>,
 }
 
 #[cfg(feature = "cortex-m")]
 impl<'a, B: Write + Read> CsMutexGuard<'a, B> {
-    pub fn new(expander: Mutex<RefCell<&'a mut PCA9539<B>>>) -> Self {
+    pub fn new(expander: CsMutex<RefCell<&'a mut PCA9539<B>>>) -> Self {
         CsMutexGuard { expander }
     }
 }
@@ -70,5 +70,36 @@ where
         cortex_m::interrupt::free(|cs| {
             f(self.expander.borrow(cs).borrow_mut().deref_mut());
         })
+    }
+}
+
+#[cfg(feature = "spin")]
+use spin::Mutex as SpinMutex;
+
+#[cfg(feature = "spin")]
+pub struct SpinGuard<'a, B>
+where
+    B: Write + Read<u8>,
+{
+    expander: SpinMutex<RefCell<&'a mut PCA9539<B>>>,
+}
+
+#[cfg(feature = "spin")]
+impl<'a, B: Write + Read> SpinGuard<'a, B> {
+    pub fn new(expander: SpinMutex<RefCell<&'a mut PCA9539<B>>>) -> Self {
+        SpinGuard { expander }
+    }
+}
+
+#[cfg(feature = "spin")]
+impl<'a, B> RefGuard<B> for SpinGuard<'a, B>
+where
+    B: Write + Read<u8>,
+{
+    fn access<F>(&self, mut f: F)
+    where
+        F: FnMut(&mut PCA9539<B>),
+    {
+        f(self.expander.lock().borrow_mut().deref_mut());
     }
 }

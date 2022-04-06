@@ -113,7 +113,7 @@ where
     }
 
     fn into_output_pin(self, state: PinState) -> Result<Pin<'a, B, R, Output, RegularAccessMode>, Self::Error> {
-        self.change_mode(Mode::Input)?;
+        self.change_mode(Mode::Output)?;
 
         let mut pin = Pin {
             expander: self.expander,

@@ -1,3 +1,5 @@
+#[cfg(feature = "cortex-m")]
+use crate::guard::CsMutexGuard;
 use crate::guard::LockFreeGuard;
 use crate::pins::Pins;
 use alloc::borrow::ToOwned;
@@ -5,6 +7,8 @@ use alloc::string::{String, ToString};
 use bitmaps::Bitmap;
 use core::cell::RefCell;
 use core::fmt::{Debug, Formatter};
+#[cfg(feature = "cortex-m")]
+use cortex_m::interrupt::Mutex;
 use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
 
 /// GPIO bank. PCA9539 has two with 7 pins each
@@ -109,9 +113,19 @@ where
         expander
     }
 
-    /// Returns a container for fetching individual pins
+    /// Returns a pins container without using any locks
+    /// This is the most efficient way of using individual pins
+    /// The downside is, that these pins are neither Send or Sync, so can only be used in single-threaded
+    /// and interrupt-free applications
     pub fn pins(&mut self) -> Pins<B, LockFreeGuard<B>> {
         Pins::new(LockFreeGuard::new(RefCell::new(self)))
+    }
+
+    /// Returns a pins container using Mutex based on critical sections
+    /// Individual pins can be used across threads and interrupts, as long just running on a single core
+    #[cfg(feature = "cortex-m")]
+    pub fn pins_cs_mutex(&mut self) -> Pins<B, CsMutexGuard<B>> {
+        Pins::new(CsMutexGuard::new(Mutex::new(RefCell::new(self))))
     }
 
     /// Switches the given pin to the input/output mode by adjusting the configuration register

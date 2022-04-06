@@ -13,6 +13,7 @@ documentation = "https://docs.rs/pca9539"
 [dependencies]
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
 bitmaps = { version = "3.1.0", default-features = false }
+cortex-m = { version = "0.7.4", optional = true }
 
 [dev-dependencies]
 mockall = "0.11.0"

@@ -186,10 +186,18 @@ where
     /// Pin needs to be in INPUT mode
     /// This method is using the cached register, for a updated result `refresh_input_state()` needs
     /// to be called beforehand
-    pub fn is_pin_high(&self, bank: Bank, id: PinID) -> bool {
+    pub fn is_pin_input_high(&self, bank: Bank, id: PinID) -> bool {
         match bank {
             Bank::Bank0 => self.input_0.get(id as usize),
             Bank::Bank1 => self.input_1.get(id as usize),
+        }
+    }
+
+    /// Returns true if the pins output state is set high
+    pub fn is_pin_output_high(&self, bank: Bank, id: PinID) -> bool {
+        match bank {
+            Bank::Bank0 => self.output_0.get(id as usize),
+            Bank::Bank1 => self.output_1.get(id as usize),
         }
     }
 

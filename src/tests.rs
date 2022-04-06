@@ -2,9 +2,9 @@ use crate::expander::Bank::{Bank0, Bank1};
 use crate::expander::Mode::{Input, Output};
 use crate::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4, Pin5, Pin6, Pin7};
 use crate::expander::PCA9539;
-use crate::mocks::BusMockBuilder;
+use crate::mocks::{BusMockBuilder, WriteError};
 use alloc::string::ToString;
-use embedded_hal::digital::v2::InputPin;
+use embedded_hal::digital::v2::{InputPin, OutputPin, PinState, StatefulOutputPin};
 
 #[test]
 fn test_expander_output_mode_bank0() {
@@ -256,15 +256,15 @@ fn test_is_pin_high_bank0() {
     let mut expander = PCA9539::new(i2c_bus);
     expander.refresh_input_state(Bank0).unwrap();
 
-    assert!(!expander.is_pin_high(Bank0, Pin7));
-    assert!(expander.is_pin_high(Bank0, Pin6));
-    assert!(expander.is_pin_high(Bank0, Pin5));
-    assert!(expander.is_pin_high(Bank0, Pin4));
+    assert!(!expander.is_pin_input_high(Bank0, Pin7));
+    assert!(expander.is_pin_input_high(Bank0, Pin6));
+    assert!(expander.is_pin_input_high(Bank0, Pin5));
+    assert!(expander.is_pin_input_high(Bank0, Pin4));
 
-    assert!(expander.is_pin_high(Bank0, Pin3));
-    assert!(!expander.is_pin_high(Bank0, Pin2));
-    assert!(expander.is_pin_high(Bank0, Pin1));
-    assert!(!expander.is_pin_high(Bank0, Pin0));
+    assert!(expander.is_pin_input_high(Bank0, Pin3));
+    assert!(!expander.is_pin_input_high(Bank0, Pin2));
+    assert!(expander.is_pin_input_high(Bank0, Pin1));
+    assert!(!expander.is_pin_input_high(Bank0, Pin0));
 }
 
 #[test]
@@ -277,15 +277,15 @@ fn test_is_pin_high_bank1() {
     let mut expander = PCA9539::new(i2c_bus);
     expander.refresh_input_state(Bank1).unwrap();
 
-    assert!(!expander.is_pin_high(Bank1, Pin7));
-    assert!(expander.is_pin_high(Bank1, Pin6));
-    assert!(!expander.is_pin_high(Bank1, Pin5));
-    assert!(!expander.is_pin_high(Bank1, Pin4));
+    assert!(!expander.is_pin_input_high(Bank1, Pin7));
+    assert!(expander.is_pin_input_high(Bank1, Pin6));
+    assert!(!expander.is_pin_input_high(Bank1, Pin5));
+    assert!(!expander.is_pin_input_high(Bank1, Pin4));
 
-    assert!(!expander.is_pin_high(Bank1, Pin3));
-    assert!(expander.is_pin_high(Bank1, Pin2));
-    assert!(expander.is_pin_high(Bank1, Pin1));
-    assert!(expander.is_pin_high(Bank1, Pin0));
+    assert!(!expander.is_pin_input_high(Bank1, Pin3));
+    assert!(expander.is_pin_input_high(Bank1, Pin2));
+    assert!(expander.is_pin_input_high(Bank1, Pin1));
+    assert!(expander.is_pin_input_high(Bank1, Pin0));
 }
 
 #[test]
@@ -458,4 +458,87 @@ fn test_refreshable_pin_input_read_error() {
 
     assert_eq!("ReadError", error.to_string());
     assert!(pin.is_low().unwrap());
+}
+
+#[test]
+fn test_regular_pin_set_output_state() {
+    let i2c_bus = BusMockBuilder::new()
+        .expect_write(1, 0x03, 0b1111_1011)
+        .expect_write(1, 0x02, 0b1110_1111)
+        .expect_write(1, 0x02, 0b1110_1110)
+        .expect_write(1, 0x02, 0b1111_1110)
+        .expect_write(1, 0x02, 0b1111_1110)
+        .expect_write(1, 0x02, 0b1111_1111)
+        .expect_write(1, 0x03, 0b1111_1111)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin00 = pins.get_pin(Bank0, Pin0);
+    let mut pin04 = pins.get_pin(Bank0, Pin4);
+    let mut pin12 = pins.get_pin(Bank1, Pin2);
+
+    pin12.set_low().unwrap();
+    assert!(pin12.is_set_low().unwrap());
+    assert!(!pin12.is_set_high().unwrap());
+
+    pin04.set_low().unwrap();
+    assert!(pin04.is_set_low().unwrap());
+    assert!(!pin04.is_set_high().unwrap());
+
+    pin00.set_state(PinState::Low).unwrap();
+    assert!(pin00.is_set_low().unwrap());
+    assert!(!pin00.is_set_high().unwrap());
+
+    pin04.set_state(PinState::High).unwrap();
+    assert!(!pin04.is_set_low().unwrap());
+    assert!(pin04.is_set_high().unwrap());
+
+    pin04.set_high().unwrap();
+    assert!(!pin04.is_set_low().unwrap());
+    assert!(pin04.is_set_high().unwrap());
+
+    pin00.set_high().unwrap();
+    assert!(!pin00.is_set_low().unwrap());
+    assert!(pin00.is_set_high().unwrap());
+
+    pin12.set_high().unwrap();
+    assert!(!pin12.is_set_low().unwrap());
+    assert!(pin12.is_set_high().unwrap());
+}
+
+#[test]
+fn test_regular_pin_set_low_write_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x2).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin = pins.get_pin(Bank0, Pin0);
+
+    let result = pin.set_low();
+    assert_eq!(WriteError::Error1, result.unwrap_err());
+}
+
+#[test]
+fn test_regular_pin_set_high_write_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x2).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin = pins.get_pin(Bank0, Pin0);
+
+    let result = pin.set_high();
+    assert_eq!(WriteError::Error1, result.unwrap_err());
+}
+
+#[test]
+fn test_regular_pin_set_state_write_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x2).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let mut pin = pins.get_pin(Bank0, Pin0);
+
+    let result = pin.set_state(PinState::High);
+    assert_eq!(WriteError::Error1, result.unwrap_err());
 }

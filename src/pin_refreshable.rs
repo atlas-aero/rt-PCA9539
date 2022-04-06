@@ -55,7 +55,7 @@ where
         let mut state = false;
 
         self.expander.access(|expander| {
-            state = expander.is_pin_high(self.bank, self.id);
+            state = expander.is_pin_input_high(self.bank, self.id);
         });
 
         Ok(state)

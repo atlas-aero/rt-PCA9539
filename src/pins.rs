@@ -60,3 +60,20 @@ where
     pub(crate) bus: PhantomData<fn(B) -> B>,
     pub(crate) access_mode: PhantomData<A>,
 }
+
+impl<'a, B, R, A> Pin<'a, B, R, A>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+    A: AccessMode,
+{
+    /// Returns the current output state, this logic is independent from access mode, as it acts in both
+    /// cases on cached register state
+    pub(crate) fn is_pin_output_high(&self) -> bool {
+        let mut is_high = false;
+        self.expander
+            .access(|expander| is_high = expander.is_pin_output_high(self.bank, self.id));
+
+        is_high
+    }
+}

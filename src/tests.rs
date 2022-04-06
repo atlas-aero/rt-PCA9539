@@ -66,8 +66,10 @@ fn test_expander_state_low_bank0() {
         .into_mock();
 
     let mut expander = PCA9539::new(i2c_bus);
-    expander.set_state(Bank0, Pin1, false).unwrap();
-    expander.set_state(Bank0, Pin4, false).unwrap();
+    expander.set_state(Bank0, Pin1, false);
+    expander.write_output_state(Bank0).unwrap();
+    expander.set_state(Bank0, Pin4, false);
+    expander.write_output_state(Bank0).unwrap();
 }
 
 #[test]
@@ -78,8 +80,10 @@ fn test_expander_state_low_bank1() {
         .into_mock();
 
     let mut expander = PCA9539::new(i2c_bus);
-    expander.set_state(Bank1, Pin2, false).unwrap();
-    expander.set_state(Bank1, Pin1, false).unwrap();
+    expander.set_state(Bank1, Pin2, false);
+    expander.write_output_state(Bank1).unwrap();
+    expander.set_state(Bank1, Pin1, false);
+    expander.write_output_state(Bank1).unwrap();
 }
 
 #[test]
@@ -92,8 +96,10 @@ fn test_expander_state_high_bank0() {
 
     let mut expander = PCA9539::new(i2c_bus);
     expander.set_state_all(Bank0, false).unwrap();
-    expander.set_state(Bank0, Pin5, true).unwrap();
-    expander.set_state(Bank0, Pin0, true).unwrap();
+    expander.set_state(Bank0, Pin5, true);
+    expander.write_output_state(Bank0).unwrap();
+    expander.set_state(Bank0, Pin0, true);
+    expander.write_output_state(Bank0).unwrap();
 }
 
 #[test]
@@ -106,8 +112,10 @@ fn test_expander_state_high_bank1() {
 
     let mut expander = PCA9539::new(i2c_bus);
     expander.set_state_all(Bank1, false).unwrap();
-    expander.set_state(Bank1, Pin6, true).unwrap();
-    expander.set_state(Bank1, Pin4, true).unwrap();
+    expander.set_state(Bank1, Pin6, true);
+    expander.write_output_state(Bank1).unwrap();
+    expander.set_state(Bank1, Pin4, true);
+    expander.write_output_state(Bank1).unwrap();
 }
 
 #[test]
@@ -433,7 +441,7 @@ fn test_refreshable_pin_input_mixed_banks() {
 }
 
 #[test]
-fn test_refreshable_pin_input_write_error() {
+fn test_refreshable_pin_refresh_bank_write_error() {
     let i2c_bus = BusMockBuilder::new().write_error(0x0).into_mock();
 
     let mut expander = PCA9539::new(i2c_bus);
@@ -447,7 +455,7 @@ fn test_refreshable_pin_input_write_error() {
 }
 
 #[test]
-fn test_refreshable_pin_input_read_error() {
+fn test_refreshable_pin_refresh_bank_read_error() {
     let i2c_bus = BusMockBuilder::new().expect_write(1, 0x00, 0x0).read_error(0x0).into_mock();
 
     let mut expander = PCA9539::new(i2c_bus);
@@ -455,6 +463,43 @@ fn test_refreshable_pin_input_read_error() {
 
     let pin = pins.get_refreshable_pin(Bank0, Pin0);
     let error = pin.refresh_bank().unwrap_err();
+
+    assert_eq!("ReadError", error.to_string());
+    assert!(pin.is_low().unwrap());
+}
+
+#[test]
+fn test_refreshable_pin_refresh_all_write_error() {
+    let i2c_bus = BusMockBuilder::new()
+        .expect_write(1, 0x0, 0x0)
+        .expect_read(1, 0x0, 0b0001_0000)
+        .write_error(0x1)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+
+    let pin = pins.get_refreshable_pin(Bank0, Pin0);
+    let error = pin.refresh_all().unwrap_err();
+
+    assert_eq!("WriteError", error.to_string());
+    assert!(pin.is_low().unwrap());
+}
+
+#[test]
+fn test_refreshable_pin_refresh_all_read_error() {
+    let i2c_bus = BusMockBuilder::new()
+        .expect_write(1, 0x0, 0x0)
+        .expect_read(1, 0x0, 0b0001_0000)
+        .expect_write(1, 0x1, 0x0)
+        .read_error(0x1)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+
+    let pin = pins.get_refreshable_pin(Bank0, Pin0);
+    let error = pin.refresh_all().unwrap_err();
 
     assert_eq!("ReadError", error.to_string());
     assert!(pin.is_low().unwrap());
@@ -540,5 +585,94 @@ fn test_regular_pin_set_state_write_error() {
     let mut pin = pins.get_pin(Bank0, Pin0);
 
     let result = pin.set_state(PinState::High);
+    assert_eq!(WriteError::Error1, result.unwrap_err());
+}
+
+#[test]
+fn test_refreshable_pin_set_output_state() {
+    let i2c_bus = BusMockBuilder::new()
+        .mock_write(2) // setting all low
+        .expect_write(1, 0x02, 0b0000_0110) // Update Bank 0
+        .expect_write(1, 0x03, 0b1110_0000) // Update Bank 1
+        .expect_write(1, 0x02, 0b0000_0110) // Update all
+        .expect_write(1, 0x03, 0b1110_0000) // Update all
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    expander.set_state_all(Bank0, false).unwrap();
+    expander.set_state_all(Bank1, false).unwrap();
+
+    let pins = expander.pins();
+    let mut pin00 = pins.get_refreshable_pin(Bank0, Pin0);
+    let mut pin01 = pins.get_refreshable_pin(Bank0, Pin1);
+    let mut pin02 = pins.get_refreshable_pin(Bank0, Pin2);
+    let mut pin03 = pins.get_refreshable_pin(Bank0, Pin3);
+
+    let mut pin14 = pins.get_refreshable_pin(Bank1, Pin4);
+    let mut pin15 = pins.get_refreshable_pin(Bank1, Pin5);
+    let mut pin16 = pins.get_refreshable_pin(Bank1, Pin6);
+    let mut pin17 = pins.get_refreshable_pin(Bank1, Pin7);
+
+    pin00.set_low().unwrap();
+    assert!(pin00.is_set_low().unwrap());
+    assert!(!pin00.is_set_high().unwrap());
+
+    pin01.set_high().unwrap();
+    assert!(!pin01.is_set_low().unwrap());
+    assert!(pin01.is_set_high().unwrap());
+
+    pin02.set_high().unwrap();
+    assert!(!pin02.is_set_low().unwrap());
+    assert!(pin02.is_set_high().unwrap());
+
+    pin03.set_low().unwrap();
+    assert!(pin03.is_set_low().unwrap());
+    assert!(!pin03.is_set_high().unwrap());
+
+    pin14.set_low().unwrap();
+    assert!(pin14.is_set_low().unwrap());
+    assert!(!pin14.is_set_high().unwrap());
+
+    pin15.set_high().unwrap();
+    assert!(!pin15.is_set_low().unwrap());
+    assert!(pin15.is_set_high().unwrap());
+
+    pin16.set_high().unwrap();
+    assert!(!pin16.is_set_low().unwrap());
+    assert!(pin16.is_set_high().unwrap());
+
+    pin17.set_high().unwrap();
+    assert!(!pin17.is_set_low().unwrap());
+    assert!(pin17.is_set_high().unwrap());
+
+    pin03.update_bank().unwrap();
+    pin16.update_bank().unwrap();
+    pin17.update_all().unwrap();
+}
+
+#[test]
+fn test_refreshable_pin_update_bank_write_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x2).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let pin = pins.get_refreshable_pin(Bank0, Pin0);
+
+    let result = pin.update_bank();
+    assert_eq!(WriteError::Error1, result.unwrap_err());
+}
+
+#[test]
+fn test_refreshable_pin_update_all_write_error() {
+    let i2c_bus = BusMockBuilder::new()
+        .expect_write(1, 0x2, 0b1111_1111) // Update Bank 0
+        .write_error(0x3)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus);
+    let pins = expander.pins();
+    let pin = pins.get_refreshable_pin(Bank1, Pin0);
+
+    let result = pin.update_all();
     assert_eq!(WriteError::Error1, result.unwrap_err());
 }

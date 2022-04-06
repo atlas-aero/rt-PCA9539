@@ -64,8 +64,10 @@ where
     fn set_state(&mut self, state: PinState) -> Result<(), Self::Error> {
         let mut result = Ok(());
 
-        self.expander
-            .access(|expander| result = expander.set_state(self.bank, self.id, state == PinState::High));
+        self.expander.access(|expander| {
+            expander.set_state(self.bank, self.id, state == PinState::High);
+            result = expander.write_output_state(self.bank);
+        });
 
         result
     }
@@ -78,15 +80,11 @@ where
 {
     /// As this is just acting on cached register data, its in fact Infallible
     fn is_set_high(&self) -> Result<bool, Self::Error> {
-        let mut is_high = false;
-        self.expander
-            .access(|expander| is_high = expander.is_pin_output_high(self.bank, self.id));
-
-        Ok(is_high)
+        Ok(self.is_pin_output_high())
     }
 
     /// As this is just acting on cached register data, its in fact Infallible
     fn is_set_low(&self) -> Result<bool, Self::Error> {
-        Ok(!self.is_set_high()?)
+        Ok(!self.is_pin_output_high())
     }
 }

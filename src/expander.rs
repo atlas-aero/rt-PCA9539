@@ -140,12 +140,11 @@ where
 
     /// Sets the given output state by adjusting the output register
     /// Pin needs to be in OUTPUT mode for correct electrical state
-    pub fn set_state(&mut self, bank: Bank, id: PinID, is_high: bool) -> Result<(), <B as Write>::Error> {
+    pub(crate) fn set_state(&mut self, bank: Bank, id: PinID, is_high: bool) {
         match bank {
             Bank::Bank0 => self.output_0.set(id as usize, is_high),
             Bank::Bank1 => self.output_1.set(id as usize, is_high),
         };
-        self.write_output(bank)
     }
 
     /// Sets output state for all pins of a bank
@@ -160,7 +159,7 @@ where
             Bank::Bank0 => self.output_0 = bitset,
             Bank::Bank1 => self.output_1 = bitset,
         };
-        self.write_output(bank)
+        self.write_output_state(bank)
     }
 
     /// Reveres/Resets the input polarity of the given pin
@@ -227,7 +226,7 @@ where
     }
 
     /// Writes the output register of the given bank
-    fn write_output(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+    pub(crate) fn write_output_state(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
             Bank::Bank0 => self.bus.write(COMMAND_OUTPUT_0, &[self.output_0.as_value().to_owned()]),
             Bank::Bank1 => self.bus.write(COMMAND_OUTPUT_1, &[self.output_1.as_value().to_owned()]),

@@ -8,9 +8,9 @@ Abstraction for I/O expander [PCA9539](<https://www.ti.com/lit/ds/symlink/pca953
 
 This crate offers the following features:
 * Individual pin instances, fully implementing [digital::v2 traits of embedded_hal](https://docs.rs/embedded-hal/latest/embedded_hal/digital/v2/index.html)
-* Central I/O control, s. [PCA9539 module](#)
-* Two state management modes for reduced I2C overhead, s. [pins module](#)
-* Three concurrency models, s. [concurrency section](#)
+* Central I/O control, s. [PCA9539 module](https://docs.rs/pca9539/0.1.0/pca9539/expander/index.html)
+* Two state management modes for reduced I2C overhead, s. [pins module](https://docs.rs/pca9539/0.1.0/pca9539/pins/index.html)
+* Three concurrency models, s. [concurrency section](https://docs.rs/pca9539/0.1.0/pca9539/pins/index.html#concurrency)
 * no_std support
 
 ## Example

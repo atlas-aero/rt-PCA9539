@@ -167,7 +167,9 @@ where
 
     /// Sets the given output state by adjusting the output register
     /// Pin needs to be in OUTPUT mode for correct electrical state
-    pub(crate) fn set_state(&mut self, bank: Bank, id: PinID, is_high: bool) {
+    /// Note: This just updates the internal register, to make the changes effective,
+    /// an additional call to `write_output_state()` is needed.
+    pub fn set_state(&mut self, bank: Bank, id: PinID, is_high: bool) {
         match bank {
             Bank::Bank0 => self.output_0.set(id as usize, is_high),
             Bank::Bank1 => self.output_1.set(id as usize, is_high),
@@ -253,7 +255,7 @@ where
     }
 
     /// Writes the output register of the given bank
-    pub(crate) fn write_output_state(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+    pub fn write_output_state(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
             Bank::Bank0 => self.bus.write(COMMAND_OUTPUT_0, &[self.output_0.as_value().to_owned()]),
             Bank::Bank1 => self.bus.write(COMMAND_OUTPUT_1, &[self.output_1.as_value().to_owned()]),

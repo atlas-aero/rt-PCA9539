@@ -4,10 +4,11 @@
 extern crate alloc;
 
 pub mod expander;
-pub mod guard;
-pub mod pin_refreshable;
-pub mod pin_regular;
 pub mod pins;
+
+pub(crate) mod guard;
+pub(crate) mod pin_refreshable;
+pub(crate) mod pin_regular;
 
 #[cfg(test)]
 mod mocks;

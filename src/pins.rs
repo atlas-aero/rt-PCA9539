@@ -32,7 +32,9 @@ impl<B: Write + Read, R: RefGuard<B>> Pins<B, R> {
     }
 }
 
-/// Marker trait defining how the state of pins is handled. Currently there are two modes supported:
+/// Marker trait defining how the state of pins is handled.
+///
+/// Currently there are two modes supported:
 /// * Regular: State of the pin is synchronously fetched from I2C bus when calling functions like `is_high()`
 /// * Refreshable: State of all pins is refreshed explicitly and functions like `is_high()` are working on a cached state.
 /// This reducing the I2C overhead
@@ -46,7 +48,7 @@ impl AccessMode for RegularAccessMode {}
 pub struct RefreshMode {}
 impl AccessMode for RefreshMode {}
 
-/// Current I/O mode. Either Input or Output.
+/// Indicates the current pin mode. Either Input or Output.
 pub trait PinMode {}
 
 /// Input mode

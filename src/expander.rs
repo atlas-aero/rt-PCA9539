@@ -1,3 +1,87 @@
+//! # Abstraction of PCA9539
+//!
+//! Central part of this crate is the struct [PCA9539], which either allows central I/O control or
+//! or alternatively offers a breakdown into individual pins.
+//!
+//! The following examples demonstrates central I/O control. For getting separate pin instances,
+//! see the [pins module](crate::pins).
+//!
+//! ## Setup
+//! [PCA9539] instance is created using a I2CBus implementing the I2C traits of
+//! [embedded-hal](https://docs.rs/embedded-hal/latest/embedded_hal/blocking/i2c/index.html).
+//! ```
+//! use rca9539::example::DummyI2CBus;
+//! use rca9539::expander::PCA9539;
+//!
+//! let i2c_bus = DummyI2CBus::new();
+//! let expander = PCA9539::new(i2c_bus);
+//! ```
+//! ## Changing mode
+//! ```
+//!# use rca9539::example::DummyI2CBus;
+//!# use rca9539::expander::Bank::{Bank0, Bank1};
+//!# use rca9539::expander::Mode::{Input, Output};
+//!# use rca9539::expander::PCA9539;
+//!# use rca9539::expander::PinID::{Pin2, Pin4};
+//!#
+//!# let i2c_bus = DummyI2CBus::new();
+//!# let mut  expander = PCA9539::new(i2c_bus);
+//!#
+//! // Switch Pin02 to input mode
+//! expander.set_mode(Bank0, Pin2, Input).unwrap();
+//!
+//! // Switch Pin14 to output mode
+//! expander.set_mode(Bank1, Pin4, Output).unwrap();
+//! ```
+//! ## Reading input state
+//! ```
+//!# use rca9539::example::DummyI2CBus;
+//!# use rca9539::expander::Bank::Bank0;
+//!# use rca9539::expander::PCA9539;
+//!# use rca9539::expander::PinID::Pin1;
+//!#
+//!# let i2c_bus = DummyI2CBus::new();
+//!# let mut  expander = PCA9539::new(i2c_bus);
+//!#
+//! expander.refresh_input_state(Bank0).unwrap();
+//! let is_high = expander.is_pin_input_high(Bank0, Pin1);
+//!
+//! assert!(is_high);
+//! ```
+//! ## Setting output state
+//! ```
+//!# use rca9539::example::DummyI2CBus;
+//!# use rca9539::expander::Bank::Bank0;
+//!# use rca9539::expander::Mode::Output;
+//!# use rca9539::expander::PCA9539;
+//!# use rca9539::expander::PinID::Pin1;
+//!#
+//!# let i2c_bus = DummyI2CBus::new();
+//!# let mut  expander = PCA9539::new(i2c_bus);
+//!#
+//! expander.set_mode(Bank0, Pin1, Output);
+//!
+//! expander.set_state(Bank0, Pin1, true);
+//! expander.write_output_state(Bank0).unwrap();
+//!
+//! let is_high = expander.is_pin_output_high(Bank0, Pin1);
+//! assert!(is_high);
+//! ```
+//! ## Invert input polarity
+//! PCA9539 has built-in hardware support for inverting input state. See [datasheet](<https://www.ti.com/lit/ds/symlink/pca9539.pdf?ts=1649342250975>)
+//! for more details.
+//! ```
+//!# use rca9539::example::DummyI2CBus;
+//!# use rca9539::expander::Bank::Bank0;
+//!# use rca9539::expander::PCA9539;
+//!# use rca9539::expander::PinID::{Pin1, Pin3};
+//!#
+//!# let i2c_bus = DummyI2CBus::new();
+//!# let mut  expander = PCA9539::new(i2c_bus);
+//!#
+//! expander.reverse_polarity(Bank0, Pin3, true).unwrap();
+//! ```
+
 #[cfg(feature = "cortex-m")]
 use crate::guard::CsMutexGuard;
 use crate::guard::LockFreeGuard;
@@ -42,6 +126,7 @@ pub enum Mode {
     Input,
 }
 
+/// Abstraction of [PCA9539](<https://www.ti.com/lit/ds/symlink/pca9539.pdf?ts=1649342250975>) I/O expander
 pub struct PCA9539<B>
 where
     B: Write<SevenBitAddress> + Read<SevenBitAddress>,

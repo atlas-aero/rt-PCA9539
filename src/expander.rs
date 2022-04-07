@@ -10,19 +10,19 @@
 //! [PCA9539] instance is created using a I2CBus implementing the I2C traits of
 //! [embedded-hal](https://docs.rs/embedded-hal/latest/embedded_hal/blocking/i2c/index.html).
 //! ```
-//! use rca9539::example::DummyI2CBus;
-//! use rca9539::expander::PCA9539;
+//! use pca9539::example::DummyI2CBus;
+//! use pca9539::expander::PCA9539;
 //!
 //! let i2c_bus = DummyI2CBus::new();
 //! let expander = PCA9539::new(i2c_bus);
 //! ```
 //! ## Changing mode
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::Bank::{Bank0, Bank1};
-//!# use rca9539::expander::Mode::{Input, Output};
-//!# use rca9539::expander::PCA9539;
-//!# use rca9539::expander::PinID::{Pin2, Pin4};
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::{Bank0, Bank1};
+//!# use pca9539::expander::Mode::{Input, Output};
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin2, Pin4};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
 //!# let mut  expander = PCA9539::new(i2c_bus);
@@ -35,10 +35,10 @@
 //! ```
 //! ## Reading input state
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::Bank::Bank0;
-//!# use rca9539::expander::PCA9539;
-//!# use rca9539::expander::PinID::Pin1;
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::Bank0;
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::Pin1;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
 //!# let mut  expander = PCA9539::new(i2c_bus);
@@ -50,11 +50,11 @@
 //! ```
 //! ## Setting output state
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::Bank::Bank0;
-//!# use rca9539::expander::Mode::Output;
-//!# use rca9539::expander::PCA9539;
-//!# use rca9539::expander::PinID::Pin1;
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::Bank0;
+//!# use pca9539::expander::Mode::Output;
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::Pin1;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
 //!# let mut  expander = PCA9539::new(i2c_bus);
@@ -71,10 +71,10 @@
 //! PCA9539 has built-in hardware support for inverting input state. See [datasheet](<https://www.ti.com/lit/ds/symlink/pca9539.pdf?ts=1649342250975>)
 //! for more details.
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::Bank::Bank0;
-//!# use rca9539::expander::PCA9539;
-//!# use rca9539::expander::PinID::{Pin1, Pin3};
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::Bank0;
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin1, Pin3};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
 //!# let mut  expander = PCA9539::new(i2c_bus);

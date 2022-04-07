@@ -10,10 +10,10 @@
 //!
 //! ## Example
 //! ```
-//! use rca9539::example::DummyI2CBus;
-//! use rca9539::expander::Bank::Bank0;
-//! use rca9539::expander::PCA9539;
-//! use rca9539::expander::PinID::Pin1;
+//! use pca9539::example::DummyI2CBus;
+//! use pca9539::expander::Bank::Bank0;
+//! use pca9539::expander::PCA9539;
+//! use pca9539::expander::PinID::Pin1;
 //! use embedded_hal::digital::v2::InputPin;
 //!
 //! let i2c_bus = DummyI2CBus::new();

@@ -13,10 +13,10 @@
 //! Individual pins can be fetched using [PCA9539](crate::expander::PCA9539) instance.
 //! Different concurrency models are supported, see [Concurrency](#Concurrency) section for more details.
 //! ```
-//! use rca9539::example::DummyI2CBus;
-//! use rca9539::expander::Bank::Bank0;
-//! use rca9539::expander::PCA9539;
-//! use rca9539::expander::PinID::Pin1;
+//! use pca9539::example::DummyI2CBus;
+//! use pca9539::expander::Bank::Bank0;
+//! use pca9539::expander::PCA9539;
+//! use pca9539::expander::PinID::Pin1;
 //!
 //! let i2c_bus = DummyI2CBus::new();
 //! let mut  expander = PCA9539::new(i2c_bus);
@@ -27,10 +27,10 @@
 //! The following examples demonstrate using the synchronous regular access mode.
 //! Regular access mode is used when calling `get_pin()` method.
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::Bank::{Bank0, Bank1};
-//!# use rca9539::expander::PCA9539;
-//!# use rca9539::expander::PinID::{Pin1, Pin2, Pin4};
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::{Bank0, Bank1};
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin1, Pin2, Pin4};
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
@@ -56,10 +56,10 @@
 //! As `is_high()` and `is_low()` are just acting on cached state, calls of this method can not fail.
 //! #### Input example
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::Bank::{Bank0, Bank1};
-//!# use rca9539::expander::PCA9539;
-//!# use rca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::{Bank0, Bank1};
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
@@ -80,10 +80,10 @@
 //! ```
 //! #### Output example
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::Bank::{Bank0, Bank1};
-//!# use rca9539::expander::PCA9539;
-//!# use rca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::{Bank0, Bank1};
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
@@ -115,8 +115,8 @@
 //! The downside is, that these pins are neither Send or Sync, so can only be used in single-threaded
 //! and interrupt-free applications
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::PCA9539;
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::PCA9539;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
 //!# let mut  expander = PCA9539::new(i2c_bus);
@@ -130,8 +130,8 @@
 //! *Requires activation of `cortex-m` feature*
 //!
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::PCA9539;
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::PCA9539;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
 //!# let mut  expander = PCA9539::new(i2c_bus);
@@ -148,8 +148,8 @@
 //! *Requires activation of `spin` feature*
 //!
 //! ```
-//!# use rca9539::example::DummyI2CBus;
-//!# use rca9539::expander::PCA9539;
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::PCA9539;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
 //!# let mut  expander = PCA9539::new(i2c_bus);

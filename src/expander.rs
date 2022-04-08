@@ -138,8 +138,8 @@ where
     /// A1 A0
     ///  L  L => 0x74 (hexadecimal)
     ///  L  H => 0x75 (hexadecimal)
-    ///  H  L => 0x75 (hexadecimal)
-    ///  H  H => 0x76 (hexadecimal)
+    ///  H  L => 0x76 (hexadecimal)
+    ///  H  H => 0x77 (hexadecimal)
     address: u8,
 
     /// First input register

@@ -2,9 +2,10 @@
 name = "pca9539"
 description = "Abstraciton for PCA9539 I/O expander"
 keywords = ["gpio", "PCA9539", "no_std", "expander", "ic"]
+categories  = ["embedded", "hardware-support", "no-std"]
 authors = ["PEGASUS GmbH <info@pegasus-aero.de>"]
 license = "MIT OR Apache-2.0"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 repository = "https://github.com/pegasus-aero/rt-PCA9539"
 readme = "README.md"

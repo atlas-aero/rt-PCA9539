@@ -22,7 +22,7 @@ use rca9539::expander::PinID::Pin1;
 use embedded_hal::digital::v2::InputPin;
 
 let i2c_bus = DummyI2CBus::new();
-let mut  expander = PCA9539::new(i2c_bus);
+let mut  expander = PCA9539::new(i2c_bus, 0x74);
 let pins = expander.pins();
 
 let pin01 = pins.get_pin(Bank0, Pin1);

@@ -43,23 +43,22 @@ impl BusMockBuilder {
         self
     }
 
-    pub fn expect_write(mut self, times: usize, address: u8, data: u8) -> Self {
-        self.bus
-            .expect_write()
-            .times(times)
-            .returning(move |actual_address, actual_data| {
-                assert_eq!(address, actual_address);
-                assert_eq!(1, actual_data.len());
-                assert_eq!(data, actual_data[0]);
-                Ok(())
-            });
+    pub fn expect_write(mut self, times: usize, data: &[u8]) -> Self {
+        let data_vec = data.to_vec();
+
+        self.bus.expect_write().times(times).returning(move |address, buffer| {
+            assert_eq!(0x74, address);
+            assert_eq!(data_vec.len(), buffer.len());
+            assert_eq!(data_vec.as_slice(), buffer);
+            Ok(())
+        });
 
         self
     }
 
-    pub fn expect_read(mut self, times: usize, address: u8, data: u8) -> Self {
-        self.bus.expect_read().times(times).returning(move |actual_address, buffer| {
-            assert_eq!(address, actual_address);
+    pub fn expect_read(mut self, times: usize, data: u8) -> Self {
+        self.bus.expect_read().times(times).returning(move |address, buffer| {
+            assert_eq!(0x74, address);
             assert_eq!(1, buffer.len());
             buffer[0] = data;
 
@@ -69,18 +68,19 @@ impl BusMockBuilder {
         self
     }
 
-    pub fn write_error(mut self, address: u8) -> Self {
-        self.bus.expect_write().times(1).returning(move |actual_address, _| {
-            assert_eq!(actual_address, address);
+    pub fn write_error(mut self, command: u8) -> Self {
+        self.bus.expect_write().times(1).returning(move |address, buffer| {
+            assert_eq!(0x74, address);
+            assert_eq!(command, buffer[0]);
             Err(WriteError::Error1)
         });
 
         self
     }
 
-    pub fn read_error(mut self, address: u8) -> Self {
-        self.bus.expect_read().times(1).returning(move |actual_address, _| {
-            assert_eq!(actual_address, address);
+    pub fn read_error(mut self) -> Self {
+        self.bus.expect_read().times(1).returning(move |address, _| {
+            assert_eq!(0x74, address);
             Err(ReadError::Error1)
         });
 

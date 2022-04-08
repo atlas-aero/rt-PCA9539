@@ -19,7 +19,7 @@
 //! use pca9539::expander::PinID::Pin1;
 //!
 //! let i2c_bus = DummyI2CBus::new();
-//! let mut  expander = PCA9539::new(i2c_bus);
+//! let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
 //! ```
 //! ## State management modes
@@ -34,7 +34,7 @@
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
 //! let pin12 = pins.get_pin(Bank1, Pin2);
 //! let mut  pin04 = pins.get_pin(Bank0, Pin4).into_output_pin(PinState::Low).unwrap();
@@ -63,7 +63,7 @@
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
 //! let pin00 = pins.get_refreshable_pin(Bank0, Pin0);
 //! let pin10 = pins.get_refreshable_pin(Bank1, Pin0);
@@ -87,7 +87,7 @@
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
 //! let mut pin00 = pins.get_refreshable_pin(Bank0, Pin0).into_output_pin(PinState::Low).unwrap();
 //! let mut pin10 = pins.get_refreshable_pin(Bank1, Pin0).into_output_pin(PinState::Low).unwrap();
@@ -119,7 +119,7 @@
 //!# use pca9539::expander::PCA9539;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
 //! ```
 //!
@@ -134,7 +134,7 @@
 //!# use pca9539::expander::PCA9539;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!# #[cfg(feature = "cortex-m")]
 //! let pins = expander.pins_cs_mutex();
 //! ```
@@ -152,7 +152,7 @@
 //!# use pca9539::expander::PCA9539;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!# #[cfg(feature = "spin")]
 //! let pins = expander.pins_spin_mutex();
 //! ```

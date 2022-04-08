@@ -9,12 +9,13 @@
 //! ## Setup
 //! [PCA9539] instance is created using a I2CBus implementing the I2C traits of
 //! [embedded-hal](https://docs.rs/embedded-hal/latest/embedded_hal/blocking/i2c/index.html).
-//! ```
+//!```
 //! use pca9539::example::DummyI2CBus;
 //! use pca9539::expander::PCA9539;
 //!
 //! let i2c_bus = DummyI2CBus::new();
-//! let expander = PCA9539::new(i2c_bus);
+//! // Assuming I2C device address 0x74
+//! let expander = PCA9539::new(i2c_bus, 0x74);
 //! ```
 //! ## Changing mode
 //! ```
@@ -25,7 +26,7 @@
 //!# use pca9539::expander::PinID::{Pin2, Pin4};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! // Switch Pin02 to input mode
 //! expander.set_mode(Bank0, Pin2, Input).unwrap();
@@ -41,7 +42,7 @@
 //!# use pca9539::expander::PinID::Pin1;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! expander.refresh_input_state(Bank0).unwrap();
 //! let is_high = expander.is_pin_input_high(Bank0, Pin1);
@@ -57,7 +58,7 @@
 //!# use pca9539::expander::PinID::Pin1;
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! expander.set_mode(Bank0, Pin1, Output);
 //!
@@ -77,7 +78,7 @@
 //!# use pca9539::expander::PinID::{Pin1, Pin3};
 //!#
 //!# let i2c_bus = DummyI2CBus::new();
-//!# let mut  expander = PCA9539::new(i2c_bus);
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! expander.reverse_polarity(Bank0, Pin3, true).unwrap();
 //! ```
@@ -133,11 +134,17 @@ where
 {
     bus: B,
 
+    /// I2C slave address, dependents on A0 and A1 state.
+    /// A1 A0
+    ///  L  L => 0x74 (hexadecimal)
+    ///  L  H => 0x75 (hexadecimal)
+    ///  H  L => 0x75 (hexadecimal)
+    ///  H  H => 0x76 (hexadecimal)
+    address: u8,
+
     /// First input register
-    #[allow(unused)]
     input_0: Bitmap<8>,
     /// Second input register
-    #[allow(unused)]
     input_1: Bitmap<8>,
 
     /// First output register
@@ -146,10 +153,8 @@ where
     output_1: Bitmap<8>,
 
     /// First polarity inversion register
-    #[allow(unused)]
     polarity_0: Bitmap<8>,
     /// Second polarity inversion register
-    #[allow(unused)]
     polarity_1: Bitmap<8>,
 
     /// First configuration register
@@ -181,9 +186,10 @@ impl<B> PCA9539<B>
 where
     B: Write<SevenBitAddress> + Read<SevenBitAddress>,
 {
-    pub fn new(bus: B) -> Self {
+    pub fn new(bus: B, address: u8) -> Self {
         let mut expander = Self {
             bus,
+            address,
             input_0: Bitmap::<8>::new(),
             input_1: Bitmap::<8>::new(),
             output_0: Bitmap::<8>::new(),
@@ -316,13 +322,13 @@ where
 
     /// Reads and returns the given input register
     fn read_input_register(&mut self, command: u8) -> Result<u8, RefreshInputError<B>> {
-        let result = self.bus.write(command, &[0x0]);
+        let result = self.bus.write(self.address, &[command]);
         if result.is_err() {
             return Err(RefreshInputError::WriteError(result.unwrap_err()));
         }
 
         let mut buffer: [u8; 1] = [0x0; 1];
-        let result = self.bus.read(command, &mut buffer);
+        let result = self.bus.read(self.address, &mut buffer);
 
         if result.is_err() {
             return Err(RefreshInputError::ReadError(result.unwrap_err()));
@@ -334,24 +340,40 @@ where
     /// Writes the configuration register of the given bank
     fn write_conf(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.bus.write(COMMAND_CONF_0, &[self.configuration_0.as_value().to_owned()]),
-            Bank::Bank1 => self.bus.write(COMMAND_CONF_1, &[self.configuration_1.as_value().to_owned()]),
+            Bank::Bank0 => self.bus.write(
+                self.address,
+                &[COMMAND_CONF_0, self.configuration_0.as_value().to_owned()],
+            ),
+            Bank::Bank1 => self.bus.write(
+                self.address,
+                &[COMMAND_CONF_1, self.configuration_1.as_value().to_owned()],
+            ),
         }
     }
 
     /// Writes the output register of the given bank
     pub fn write_output_state(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.bus.write(COMMAND_OUTPUT_0, &[self.output_0.as_value().to_owned()]),
-            Bank::Bank1 => self.bus.write(COMMAND_OUTPUT_1, &[self.output_1.as_value().to_owned()]),
+            Bank::Bank0 => self
+                .bus
+                .write(self.address, &[COMMAND_OUTPUT_0, self.output_0.as_value().to_owned()]),
+            Bank::Bank1 => self
+                .bus
+                .write(self.address, &[COMMAND_OUTPUT_1, self.output_1.as_value().to_owned()]),
         }
     }
 
     /// Writes the polarity register of the given bank
     fn write_polarity(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.bus.write(COMMAND_POLARITY_0, &[self.polarity_0.as_value().to_owned()]),
-            Bank::Bank1 => self.bus.write(COMMAND_POLARITY_1, &[self.polarity_1.as_value().to_owned()]),
+            Bank::Bank0 => self.bus.write(
+                self.address,
+                &[COMMAND_POLARITY_0, self.polarity_0.as_value().to_owned()],
+            ),
+            Bank::Bank1 => self.bus.write(
+                self.address,
+                &[COMMAND_POLARITY_1, self.polarity_1.as_value().to_owned()],
+            ),
         }
     }
 }

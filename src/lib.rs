@@ -31,9 +31,9 @@ extern crate embedded_hal;
 #[cfg(feature = "example")]
 pub mod example;
 pub mod expander;
+pub mod guard;
 pub mod pins;
 
-pub(crate) mod guard;
 pub(crate) mod pin_refreshable;
 pub(crate) mod pin_regular;
 

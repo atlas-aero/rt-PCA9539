@@ -1,3 +1,7 @@
+//! # Concurrency wrappers
+//!
+//! See [concurrency section](crate::pins#concurrency) for more details.
+
 use crate::expander::PCA9539;
 use core::cell::RefCell;
 use core::ops::DerefMut;

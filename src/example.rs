@@ -2,15 +2,10 @@
 use core::convert::Infallible;
 use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
 
+#[derive(Default)]
 pub struct DummyI2CBus {
     /// Command byte of last write operation
     previous_register: u8,
-}
-
-impl DummyI2CBus {
-    pub fn new() -> Self {
-        DummyI2CBus { previous_register: 0x0 }
-    }
 }
 
 impl Write for DummyI2CBus {

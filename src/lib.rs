@@ -16,7 +16,7 @@
 //! use pca9539::expander::PinID::Pin1;
 //! use embedded_hal::digital::v2::InputPin;
 //!
-//! let i2c_bus = DummyI2CBus::new();
+//! let i2c_bus = DummyI2CBus::default();
 //! let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
 //!

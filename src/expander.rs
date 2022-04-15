@@ -13,7 +13,7 @@
 //! use pca9539::example::DummyI2CBus;
 //! use pca9539::expander::PCA9539;
 //!
-//! let i2c_bus = DummyI2CBus::new();
+//! let i2c_bus = DummyI2CBus::default();
 //! // Assuming I2C device address 0x74
 //! let expander = PCA9539::new(i2c_bus, 0x74);
 //! ```
@@ -25,7 +25,7 @@
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::{Pin2, Pin4};
 //!#
-//!# let i2c_bus = DummyI2CBus::new();
+//!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! // Switch Pin02 to input mode
@@ -41,7 +41,7 @@
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::Pin1;
 //!#
-//!# let i2c_bus = DummyI2CBus::new();
+//!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! expander.refresh_input_state(Bank0).unwrap();
@@ -57,7 +57,7 @@
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::Pin1;
 //!#
-//!# let i2c_bus = DummyI2CBus::new();
+//!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! expander.set_mode(Bank0, Pin1, Output);
@@ -77,7 +77,7 @@
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::{Pin1, Pin3};
 //!#
-//!# let i2c_bus = DummyI2CBus::new();
+//!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //!#
 //! expander.reverse_polarity(Bank0, Pin3, true).unwrap();
@@ -322,17 +322,12 @@ where
 
     /// Reads and returns the given input register
     fn read_input_register(&mut self, command: u8) -> Result<u8, RefreshInputError<B>> {
-        let result = self.bus.write(self.address, &[command]);
-        if result.is_err() {
-            return Err(RefreshInputError::WriteError(result.unwrap_err()));
-        }
+        self.bus
+            .write(self.address, &[command])
+            .map_err(RefreshInputError::WriteError)?;
 
         let mut buffer: [u8; 1] = [0x0; 1];
-        let result = self.bus.read(self.address, &mut buffer);
-
-        if result.is_err() {
-            return Err(RefreshInputError::ReadError(result.unwrap_err()));
-        }
+        self.bus.read(self.address, &mut buffer).map_err(RefreshInputError::ReadError)?;
 
         Ok(buffer[0])
     }

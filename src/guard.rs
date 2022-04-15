@@ -37,7 +37,7 @@ where
 {
     fn access<F>(&self, mut f: F)
     where
-        F: FnMut(&mut PCA9539<B>) -> (),
+        F: FnMut(&mut PCA9539<B>),
     {
         f(self.expander.borrow_mut().deref_mut());
     }

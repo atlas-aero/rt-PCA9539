@@ -41,13 +41,13 @@ jobs:
           RUST_VERSION: ${{ matrix.rust }}
           OS: ${{ matrix.os }}
           RUSTFLAGS: -D warnings
-        run: cargo test
+        run: cargo test --features strict
 
       - name: Build default features
-        run: cargo build --release
+        run: cargo build --release --features strict
 
       - name: Build spin mutex feature
-        run: cargo build --release --features spin
+        run: cargo build --release --features spin,strict
 
   no_std_atomics_builds:
     name: Build no_std targets with atomics support
@@ -80,7 +80,7 @@ jobs:
         uses: Swatinem/rust-cache@v1
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }} --features ${{ matrix.feature }}
+        run: cargo build --release --target ${{ matrix.target }} --features ${{ matrix.feature }},strict
 
   no_std_no_atomics_builds:
     name: Build no_std targets without full atomics support
@@ -112,7 +112,7 @@ jobs:
         uses: Swatinem/rust-cache@v1
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }} --features ${{ matrix.feature }}
+        run: cargo build --release --target ${{ matrix.target }} --features ${{ matrix.feature }},strict
 
   code_style:
     name: Check code style
@@ -149,3 +149,6 @@ jobs:
 
       - name: Check documentation
         run: cargo rustdoc -- -D warnings
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings

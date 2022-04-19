@@ -61,6 +61,7 @@
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
+//!# use pca9539::pins::RefreshableInputPin;
 //!#
 //!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
@@ -85,6 +86,7 @@
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
 //!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
+//!# use pca9539::pins::RefreshableOutputPin;
 //!#
 //!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
@@ -160,6 +162,8 @@ use crate::expander::{Bank, Mode, PinID};
 use crate::guard::RefGuard;
 use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
+
+pub use crate::pin_refreshable::{RefreshableInputPin, RefreshableOutputPin};
 
 /// Container for fetching individual pins
 pub struct Pins<B: Write + Read, R: RefGuard<B>> {

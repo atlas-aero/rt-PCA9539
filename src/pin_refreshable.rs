@@ -6,6 +6,28 @@ use core::marker::PhantomData;
 use embedded_hal::blocking::i2c::{Read, Write};
 use embedded_hal::digital::v2::{toggleable, InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
 
+/// Trait for refreshable pins in output mode
+pub trait RefreshableOutputPin {
+    type Error;
+
+    /// Updates the output state of all pins of the same bank
+    fn update_bank(&self) -> Result<(), Self::Error>;
+
+    /// Updates the output state of all pins (on all banks)
+    fn update_all(&self) -> Result<(), Self::Error>;
+}
+
+/// Trait for refreshable pins in input mode
+pub trait RefreshableInputPin {
+    type Error;
+
+    /// Refreshes the input state of all pins of the same bank
+    fn refresh_bank(&self) -> Result<(), Self::Error>;
+
+    /// Refreshes the input state of all pins (on all banks)
+    fn refresh_all(&self) -> Result<(), Self::Error>;
+}
+
 impl<'a, B, R> Pin<'a, B, R, Input, RefreshMode>
 where
     B: Write + Read,
@@ -22,17 +44,6 @@ where
         }
     }
 
-    /// Refreshes the input state of all pins of the same bank
-    pub fn refresh_bank(&self) -> Result<(), RefreshInputError<B>> {
-        self.refresh(self.bank)
-    }
-
-    /// Refreshes the input state of all pins (on all banks)
-    pub fn refresh_all(&self) -> Result<(), RefreshInputError<B>> {
-        self.refresh(Bank::Bank0)?;
-        self.refresh(Bank::Bank1)
-    }
-
     /// Refreshes the input state of the given bank
     fn refresh(&self, bank: Bank) -> Result<(), RefreshInputError<B>> {
         let mut result = Ok(());
@@ -45,22 +56,49 @@ where
     }
 }
 
+impl<'a, B, R> RefreshableInputPin for Pin<'a, B, R, Input, RefreshMode>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+{
+    type Error = RefreshInputError<B>;
+
+    /// Refreshes the input state of all pins of the same bank
+    fn refresh_bank(&self) -> Result<(), Self::Error> {
+        self.refresh(self.bank)
+    }
+
+    /// Refreshes the input state of all pins (on all banks)
+    fn refresh_all(&self) -> Result<(), Self::Error> {
+        self.refresh(Bank::Bank0)?;
+        self.refresh(Bank::Bank1)
+    }
+}
+
+impl<'a, B, R> RefreshableOutputPin for Pin<'a, B, R, Output, RefreshMode>
+where
+    B: Write + Read,
+    R: RefGuard<B>,
+{
+    type Error = <B as Write>::Error;
+
+    /// Updates the output state of all pins of the same bank
+    fn update_bank(&self) -> Result<(), Self::Error> {
+        self.update(self.bank)
+    }
+
+    /// Updates the output state of all pins (on all banks)
+    fn update_all(&self) -> Result<(), Self::Error> {
+        self.update(Bank::Bank0)?;
+        self.update(Bank::Bank1)
+    }
+}
+
 impl<'a, B, R> Pin<'a, B, R, Output, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
 {
-    /// Updates the output state of all pins of the same bank
-    pub fn update_bank(&self) -> Result<(), <B as Write>::Error> {
-        self.update(self.bank)
-    }
-
-    /// Updates the output state of all pins (on all banks)
-    pub fn update_all(&self) -> Result<(), <B as Write>::Error> {
-        self.update(Bank::Bank0)?;
-        self.update(Bank::Bank1)
-    }
-
     /// Writes the output state of the given bank
     fn update(&self, bank: Bank) -> Result<(), <B as Write>::Error> {
         let mut result = Ok(());

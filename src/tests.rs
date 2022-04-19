@@ -7,6 +7,7 @@ use crate::guard::LockFreeGuard;
 #[cfg(feature = "spin")]
 use crate::guard::SpinGuard;
 use crate::mocks::{BusMockBuilder, MockI2CBus, WriteError};
+use crate::pin_refreshable::{RefreshableInputPin, RefreshableOutputPin};
 use crate::pins::Pins;
 use alloc::string::ToString;
 use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin, ToggleableOutputPin};

@@ -83,6 +83,7 @@
 //! expander.reverse_polarity(Bank0, Pin3, true).unwrap();
 //! ```
 
+
 #[cfg(feature = "cortex-m")]
 use crate::guard::CsMutexGuard;
 use crate::guard::LockFreeGuard;
@@ -91,13 +92,13 @@ use crate::guard::SpinGuard;
 use crate::pins::Pins;
 // use alloc::borrow::ToOwned;
 // use alloc::string::{String, ToString};
+use heapless::String;
 use bitmaps::Bitmap;
 use core::cell::RefCell;
 use core::fmt::{Debug, Formatter};
 #[cfg(feature = "cortex-m")]
 use cortex_m::interrupt::Mutex as CsMutex;
 use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
-use heapless::String;
 #[cfg(feature = "spin")]
 use spin::Mutex as SpinMutex;
 
@@ -336,12 +337,14 @@ where
     /// Writes the configuration register of the given bank
     fn write_conf(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self
-                .bus
-                .write(self.address, &[COMMAND_CONF_0, self.configuration_0.as_value().clone()]),
-            Bank::Bank1 => self
-                .bus
-                .write(self.address, &[COMMAND_CONF_1, self.configuration_1.as_value().clone()]),
+            Bank::Bank0 => self.bus.write(
+                self.address,
+                &[COMMAND_CONF_0, self.configuration_0.as_value().clone()],
+            ),
+            Bank::Bank1 => self.bus.write(
+                self.address,
+                &[COMMAND_CONF_1, self.configuration_1.as_value().clone()],
+            ),
         }
     }
 
@@ -360,12 +363,14 @@ where
     /// Writes the polarity register of the given bank
     fn write_polarity(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self
-                .bus
-                .write(self.address, &[COMMAND_POLARITY_0, self.polarity_0.as_value().clone()]),
-            Bank::Bank1 => self
-                .bus
-                .write(self.address, &[COMMAND_POLARITY_1, self.polarity_1.as_value().clone()]),
+            Bank::Bank0 => self.bus.write(
+                self.address,
+                &[COMMAND_POLARITY_0, self.polarity_0.as_value().clone()],
+            ),
+            Bank::Bank1 => self.bus.write(
+                self.address,
+                &[COMMAND_POLARITY_1, self.polarity_1.as_value().clone()],
+            ),
         }
     }
 }

@@ -247,7 +247,7 @@ fn test_refresh_input_state_write_error() {
     let mut expander = PCA9539::new(i2c_bus, 0x74);
     let result = expander.refresh_input_state(Bank0);
 
-    assert_eq!("WriteError", result.unwrap_err().to_string());
+    assert_eq!("WriteError", result.unwrap_err().to_string().as_str());
 }
 
 #[test]

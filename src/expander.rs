@@ -83,14 +83,16 @@
 //! expander.reverse_polarity(Bank0, Pin3, true).unwrap();
 //! ```
 
+
 #[cfg(feature = "cortex-m")]
 use crate::guard::CsMutexGuard;
 use crate::guard::LockFreeGuard;
 #[cfg(feature = "spin")]
 use crate::guard::SpinGuard;
 use crate::pins::Pins;
-use alloc::borrow::ToOwned;
-use alloc::string::{String, ToString};
+// use alloc::borrow::ToOwned;
+// use alloc::string::{String, ToString};
+use heapless::String;
 use bitmaps::Bitmap;
 use core::cell::RefCell;
 use core::fmt::{Debug, Formatter};
@@ -337,11 +339,11 @@ where
         match bank {
             Bank::Bank0 => self.bus.write(
                 self.address,
-                &[COMMAND_CONF_0, self.configuration_0.as_value().to_owned()],
+                &[COMMAND_CONF_0, self.configuration_0.as_value().clone()],
             ),
             Bank::Bank1 => self.bus.write(
                 self.address,
-                &[COMMAND_CONF_1, self.configuration_1.as_value().to_owned()],
+                &[COMMAND_CONF_1, self.configuration_1.as_value().clone()],
             ),
         }
     }
@@ -351,10 +353,10 @@ where
         match bank {
             Bank::Bank0 => self
                 .bus
-                .write(self.address, &[COMMAND_OUTPUT_0, self.output_0.as_value().to_owned()]),
+                .write(self.address, &[COMMAND_OUTPUT_0, self.output_0.as_value().clone()]),
             Bank::Bank1 => self
                 .bus
-                .write(self.address, &[COMMAND_OUTPUT_1, self.output_1.as_value().to_owned()]),
+                .write(self.address, &[COMMAND_OUTPUT_1, self.output_1.as_value().clone()]),
         }
     }
 
@@ -363,11 +365,11 @@ where
         match bank {
             Bank::Bank0 => self.bus.write(
                 self.address,
-                &[COMMAND_POLARITY_0, self.polarity_0.as_value().to_owned()],
+                &[COMMAND_POLARITY_0, self.polarity_0.as_value().clone()],
             ),
             Bank::Bank1 => self.bus.write(
                 self.address,
-                &[COMMAND_POLARITY_1, self.polarity_1.as_value().to_owned()],
+                &[COMMAND_POLARITY_1, self.polarity_1.as_value().clone()],
             ),
         }
     }
@@ -391,11 +393,11 @@ impl<B: Read<u8> + Write> Debug for RefreshInputError<B> {
     }
 }
 
-impl<B: Read<u8> + Write> ToString for RefreshInputError<B> {
-    fn to_string(&self) -> String {
+impl<B: Read<u8> + Write> RefreshInputError<B> {
+    pub fn to_string(&self) -> String<9> {
         match self {
-            RefreshInputError::WriteError(_) => "WriteError".to_string(),
-            RefreshInputError::ReadError(_) => "ReadError".to_string(),
+            RefreshInputError::WriteError(_) => String::try_from("WriteError").unwrap(),
+            RefreshInputError::ReadError(_) => String::try_from("ReadError").unwrap(),
         }
     }
 }

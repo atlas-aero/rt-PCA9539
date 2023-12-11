@@ -25,7 +25,6 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(feature = "strict", deny(warnings))]
 
-// extern crate alloc;
 extern crate embedded_hal;
 
 #[cfg(feature = "example")]

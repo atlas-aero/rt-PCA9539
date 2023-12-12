@@ -336,34 +336,26 @@ where
         match bank {
             Bank::Bank0 => self
                 .bus
-                .write(self.address, &[COMMAND_CONF_0, self.configuration_0.as_value().clone()]),
+                .write(self.address, &[COMMAND_CONF_0, *self.configuration_0.as_value()]),
             Bank::Bank1 => self
                 .bus
-                .write(self.address, &[COMMAND_CONF_1, self.configuration_1.as_value().clone()]),
+                .write(self.address, &[COMMAND_CONF_1, *self.configuration_1.as_value()]),
         }
     }
 
     /// Writes the output register of the given bank
     pub fn write_output_state(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self
-                .bus
-                .write(self.address, &[COMMAND_OUTPUT_0, self.output_0.as_value().clone()]),
-            Bank::Bank1 => self
-                .bus
-                .write(self.address, &[COMMAND_OUTPUT_1, self.output_1.as_value().clone()]),
+            Bank::Bank0 => self.bus.write(self.address, &[COMMAND_OUTPUT_0, *self.output_0.as_value()]),
+            Bank::Bank1 => self.bus.write(self.address, &[COMMAND_OUTPUT_1, *self.output_1.as_value()]),
         }
     }
 
     /// Writes the polarity register of the given bank
     fn write_polarity(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self
-                .bus
-                .write(self.address, &[COMMAND_POLARITY_0, self.polarity_0.as_value().clone()]),
-            Bank::Bank1 => self
-                .bus
-                .write(self.address, &[COMMAND_POLARITY_1, self.polarity_1.as_value().clone()]),
+            Bank::Bank0 => self.bus.write(self.address, &[COMMAND_POLARITY_0, *self.polarity_0.as_value()]),
+            Bank::Bank1 => self.bus.write(self.address, &[COMMAND_POLARITY_1, *self.polarity_1.as_value()]),
         }
     }
 }

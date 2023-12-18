@@ -9,7 +9,6 @@ use crate::guard::SpinGuard;
 use crate::mocks::{BusMockBuilder, MockI2CBus, WriteError};
 use crate::pin_refreshable::{RefreshableInputPin, RefreshableOutputPin};
 use crate::pins::Pins;
-use alloc::string::ToString;
 use embedded_hal::digital::v2::{InputPin, IoPin, OutputPin, PinState, StatefulOutputPin, ToggleableOutputPin};
 
 #[test]
@@ -247,7 +246,7 @@ fn test_refresh_input_state_write_error() {
     let mut expander = PCA9539::new(i2c_bus, 0x74);
     let result = expander.refresh_input_state(Bank0);
 
-    assert_eq!("WriteError", result.unwrap_err().to_string());
+    assert_eq!("WriteError", result.unwrap_err().to_string().as_str());
 }
 
 #[test]

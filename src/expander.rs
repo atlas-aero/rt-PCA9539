@@ -89,14 +89,13 @@ use crate::guard::LockFreeGuard;
 #[cfg(feature = "spin")]
 use crate::guard::SpinGuard;
 use crate::pins::Pins;
-use alloc::borrow::ToOwned;
-use alloc::string::{String, ToString};
 use bitmaps::Bitmap;
 use core::cell::RefCell;
 use core::fmt::{Debug, Formatter};
 #[cfg(feature = "cortex-m")]
 use cortex_m::interrupt::Mutex as CsMutex;
 use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
+use heapless::String;
 #[cfg(feature = "spin")]
 use spin::Mutex as SpinMutex;
 
@@ -335,40 +334,28 @@ where
     /// Writes the configuration register of the given bank
     fn write_conf(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.bus.write(
-                self.address,
-                &[COMMAND_CONF_0, self.configuration_0.as_value().to_owned()],
-            ),
-            Bank::Bank1 => self.bus.write(
-                self.address,
-                &[COMMAND_CONF_1, self.configuration_1.as_value().to_owned()],
-            ),
+            Bank::Bank0 => self
+                .bus
+                .write(self.address, &[COMMAND_CONF_0, *self.configuration_0.as_value()]),
+            Bank::Bank1 => self
+                .bus
+                .write(self.address, &[COMMAND_CONF_1, *self.configuration_1.as_value()]),
         }
     }
 
     /// Writes the output register of the given bank
     pub fn write_output_state(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self
-                .bus
-                .write(self.address, &[COMMAND_OUTPUT_0, self.output_0.as_value().to_owned()]),
-            Bank::Bank1 => self
-                .bus
-                .write(self.address, &[COMMAND_OUTPUT_1, self.output_1.as_value().to_owned()]),
+            Bank::Bank0 => self.bus.write(self.address, &[COMMAND_OUTPUT_0, *self.output_0.as_value()]),
+            Bank::Bank1 => self.bus.write(self.address, &[COMMAND_OUTPUT_1, *self.output_1.as_value()]),
         }
     }
 
     /// Writes the polarity register of the given bank
     fn write_polarity(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
         match bank {
-            Bank::Bank0 => self.bus.write(
-                self.address,
-                &[COMMAND_POLARITY_0, self.polarity_0.as_value().to_owned()],
-            ),
-            Bank::Bank1 => self.bus.write(
-                self.address,
-                &[COMMAND_POLARITY_1, self.polarity_1.as_value().to_owned()],
-            ),
+            Bank::Bank0 => self.bus.write(self.address, &[COMMAND_POLARITY_0, *self.polarity_0.as_value()]),
+            Bank::Bank1 => self.bus.write(self.address, &[COMMAND_POLARITY_1, *self.polarity_1.as_value()]),
         }
     }
 }
@@ -391,11 +378,11 @@ impl<B: Read<u8> + Write> Debug for RefreshInputError<B> {
     }
 }
 
-impl<B: Read<u8> + Write> ToString for RefreshInputError<B> {
-    fn to_string(&self) -> String {
+impl<B: Read<u8> + Write> RefreshInputError<B> {
+    pub fn to_string(&self) -> String<10> {
         match self {
-            RefreshInputError::WriteError(_) => "WriteError".to_string(),
-            RefreshInputError::ReadError(_) => "ReadError".to_string(),
+            RefreshInputError::WriteError(_) => String::try_from("WriteError").unwrap(),
+            RefreshInputError::ReadError(_) => String::try_from("ReadError").unwrap(),
         }
     }
 }

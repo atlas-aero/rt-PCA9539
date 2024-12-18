@@ -2,12 +2,12 @@ use crate::expander::{Bank, Mode, PinID, RefreshInputError};
 use crate::guard::RefGuard;
 use crate::pins::{Input, Output, Pin, PinMode, RegularAccessMode};
 use core::marker::PhantomData;
-use embedded_hal::blocking::i2c::{Read, Write};
-use embedded_hal::digital::v2::{toggleable, InputPin, IoPin, OutputPin, PinState, StatefulOutputPin};
+use embedded_hal::digital::{ErrorType, InputPin, OutputPin, PinState, StatefulOutputPin};
+use embedded_hal::i2c::{I2c, SevenBitAddress};
 
 impl<'a, B, R> Pin<'a, B, R, Input, RegularAccessMode>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
 {
     pub fn regular(expander: &'a R, bank: Bank, id: PinID) -> Self {
@@ -22,14 +22,20 @@ where
     }
 }
 
-impl<B, R> InputPin for Pin<'_, B, R, Input, RegularAccessMode>
+impl<B, R> ErrorType for Pin<'_, B, R, Input, RegularAccessMode>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
 {
     type Error = RefreshInputError<B>;
+}
 
-    fn is_high(&self) -> Result<bool, Self::Error> {
+impl<B, R> InputPin for Pin<'_, B, R, Input, RegularAccessMode>
+where
+    B: I2c<SevenBitAddress>,
+    R: RefGuard<B>,
+{
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
         let mut result = Ok(false);
 
         self.expander.access(|expander| {
@@ -42,18 +48,24 @@ where
         result
     }
 
-    fn is_low(&self) -> Result<bool, Self::Error> {
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
         Ok(!self.is_high()?)
     }
 }
 
-impl<B, R> OutputPin for Pin<'_, B, R, Output, RegularAccessMode>
+impl<B, R> ErrorType for Pin<'_, B, R, Output, RegularAccessMode>
 where
-    B: Read + Write,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
 {
-    type Error = <B as Write>::Error;
+    type Error = RefreshInputError<B>;
+}
 
+impl<B, R> OutputPin for Pin<'_, B, R, Output, RegularAccessMode>
+where
+    B: I2c<SevenBitAddress>,
+    R: RefGuard<B>,
+{
     fn set_low(&mut self) -> Result<(), Self::Error> {
         self.set_state(PinState::Low)
     }
@@ -67,7 +79,7 @@ where
 
         self.expander.access(|expander| {
             expander.set_state(self.bank, self.id, state == PinState::High);
-            result = expander.write_output_state(self.bank);
+            result = expander.write_output_state(self.bank).map_err(RefreshInputError::WriteError);
         });
 
         result
@@ -76,37 +88,27 @@ where
 
 impl<B, R> StatefulOutputPin for Pin<'_, B, R, Output, RegularAccessMode>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
 {
     /// As this is just acting on cached register data, its in fact Infallible
-    fn is_set_high(&self) -> Result<bool, Self::Error> {
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
         Ok(self.is_pin_output_high())
     }
 
     /// As this is just acting on cached register data, its in fact Infallible
-    fn is_set_low(&self) -> Result<bool, Self::Error> {
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
         Ok(!self.is_pin_output_high())
     }
 }
 
-impl<B, R> toggleable::Default for Pin<'_, B, R, Output, RegularAccessMode>
+impl<'a, B, M, R> Pin<'a, B, R, M, RegularAccessMode>
 where
-    B: Write + Read,
-    R: RefGuard<B>,
-{
-}
-
-impl<'a, B, M, R> IoPin<Pin<'a, B, R, Input, RegularAccessMode>, Pin<'a, B, R, Output, RegularAccessMode>>
-    for Pin<'a, B, R, M, RegularAccessMode>
-where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
     M: PinMode,
 {
-    type Error = <B as Write>::Error;
-
-    fn into_input_pin(self) -> Result<Pin<'a, B, R, Input, RegularAccessMode>, Self::Error> {
+    pub fn into_input_pin(self) -> Result<Pin<'a, B, R, Input, RegularAccessMode>, B::Error> {
         self.change_mode(Mode::Input)?;
 
         Ok(Pin {
@@ -119,8 +121,11 @@ where
         })
     }
 
-    fn into_output_pin(self, state: PinState) -> Result<Pin<'a, B, R, Output, RegularAccessMode>, Self::Error> {
-        self.change_mode(Mode::Output)?;
+    pub fn into_output_pin(
+        self,
+        state: PinState,
+    ) -> Result<Pin<'a, B, R, Output, RegularAccessMode>, RefreshInputError<B>> {
+        self.change_mode(Mode::Output).map_err(RefreshInputError::WriteError)?;
 
         let mut pin = Pin {
             expander: self.expander,

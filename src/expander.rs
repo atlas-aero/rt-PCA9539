@@ -94,7 +94,8 @@ use core::cell::RefCell;
 use core::fmt::{Debug, Formatter};
 #[cfg(feature = "cortex-m")]
 use cortex_m::interrupt::Mutex as CsMutex;
-use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
+use embedded_hal::digital::ErrorKind;
+use embedded_hal::i2c::{I2c, SevenBitAddress};
 use heapless::String;
 #[cfg(feature = "spin")]
 use spin::Mutex as SpinMutex;
@@ -129,7 +130,7 @@ pub enum Mode {
 /// Abstraction of [PCA9539](<https://www.ti.com/lit/ds/symlink/pca9539.pdf?ts=1649342250975>) I/O expander
 pub struct PCA9539<B>
 where
-    B: Write<SevenBitAddress> + Read<SevenBitAddress>,
+    B: I2c<SevenBitAddress>,
 {
     bus: B,
 
@@ -164,9 +165,9 @@ where
 
 /// Wrapped I2C error when refreshing input state
 /// Reading input state consists of one write, followed by a read operation
-pub enum RefreshInputError<B: Write + Read<u8>> {
-    WriteError(<B as Write>::Error),
-    ReadError(<B as Read>::Error),
+pub enum RefreshInputError<B: I2c<SevenBitAddress>> {
+    WriteError(B::Error),
+    ReadError(B::Error),
 }
 
 const COMMAND_INPUT_0: u8 = 0x00;
@@ -183,7 +184,7 @@ const COMMAND_CONF_1: u8 = 0x07;
 
 impl<B> PCA9539<B>
 where
-    B: Write<SevenBitAddress> + Read<SevenBitAddress>,
+    B: I2c<SevenBitAddress>,
 {
     pub fn new(bus: B, address: u8) -> Self {
         let mut expander = Self {
@@ -232,7 +233,7 @@ where
     }
 
     /// Switches the given pin to the input/output mode by adjusting the configuration register
-    pub fn set_mode(&mut self, bank: Bank, id: PinID, mode: Mode) -> Result<(), <B as Write>::Error> {
+    pub fn set_mode(&mut self, bank: Bank, id: PinID, mode: Mode) -> Result<(), B::Error> {
         match bank {
             Bank::Bank0 => self.configuration_0.set(id as usize, mode.into()),
             Bank::Bank1 => self.configuration_1.set(id as usize, mode.into()),
@@ -241,7 +242,7 @@ where
     }
 
     /// Switches all pins of the given bank to output/input mode1
-    pub fn set_mode_all(&mut self, bank: Bank, mode: Mode) -> Result<(), <B as Write>::Error> {
+    pub fn set_mode_all(&mut self, bank: Bank, mode: Mode) -> Result<(), B::Error> {
         let mut bitset = Bitmap::<8>::new();
 
         if mode == Mode::Input {
@@ -267,7 +268,7 @@ where
     }
 
     /// Sets output state for all pins of a bank
-    pub fn set_state_all(&mut self, bank: Bank, is_high: bool) -> Result<(), <B as Write>::Error> {
+    pub fn set_state_all(&mut self, bank: Bank, is_high: bool) -> Result<(), B::Error> {
         let mut bitset = Bitmap::<8>::new();
 
         if is_high {
@@ -282,7 +283,7 @@ where
     }
 
     /// Reveres/Resets the input polarity of the given pin
-    pub fn reverse_polarity(&mut self, bank: Bank, id: PinID, reversed: bool) -> Result<(), <B as Write>::Error> {
+    pub fn reverse_polarity(&mut self, bank: Bank, id: PinID, reversed: bool) -> Result<(), B::Error> {
         match bank {
             Bank::Bank0 => self.polarity_0.set(id as usize, reversed),
             Bank::Bank1 => self.polarity_1.set(id as usize, reversed),
@@ -332,7 +333,7 @@ where
     }
 
     /// Writes the configuration register of the given bank
-    fn write_conf(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+    fn write_conf(&mut self, bank: Bank) -> Result<(), B::Error> {
         match bank {
             Bank::Bank0 => self
                 .bus
@@ -344,7 +345,7 @@ where
     }
 
     /// Writes the output register of the given bank
-    pub fn write_output_state(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+    pub fn write_output_state(&mut self, bank: Bank) -> Result<(), B::Error> {
         match bank {
             Bank::Bank0 => self.bus.write(self.address, &[COMMAND_OUTPUT_0, *self.output_0.as_value()]),
             Bank::Bank1 => self.bus.write(self.address, &[COMMAND_OUTPUT_1, *self.output_1.as_value()]),
@@ -352,7 +353,7 @@ where
     }
 
     /// Writes the polarity register of the given bank
-    fn write_polarity(&mut self, bank: Bank) -> Result<(), <B as Write>::Error> {
+    fn write_polarity(&mut self, bank: Bank) -> Result<(), B::Error> {
         match bank {
             Bank::Bank0 => self.bus.write(self.address, &[COMMAND_POLARITY_0, *self.polarity_0.as_value()]),
             Bank::Bank1 => self.bus.write(self.address, &[COMMAND_POLARITY_1, *self.polarity_1.as_value()]),
@@ -369,7 +370,7 @@ impl From<Mode> for bool {
     }
 }
 
-impl<B: Read<u8> + Write> Debug for RefreshInputError<B> {
+impl<B: I2c> Debug for RefreshInputError<B> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             RefreshInputError::WriteError(_) => f.write_str("RefreshInputError::WriteError"),
@@ -378,11 +379,17 @@ impl<B: Read<u8> + Write> Debug for RefreshInputError<B> {
     }
 }
 
-impl<B: Read<u8> + Write> RefreshInputError<B> {
+impl<B: I2c> RefreshInputError<B> {
     pub fn to_string(&self) -> String<10> {
         match self {
             RefreshInputError::WriteError(_) => String::try_from("WriteError").unwrap(),
             RefreshInputError::ReadError(_) => String::try_from("ReadError").unwrap(),
         }
+    }
+}
+
+impl<B: I2c> embedded_hal::digital::Error for RefreshInputError<B> {
+    fn kind(&self) -> ErrorKind {
+        ErrorKind::Other
     }
 }

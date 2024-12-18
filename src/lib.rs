@@ -14,13 +14,13 @@
 //! use pca9539::expander::Bank::Bank0;
 //! use pca9539::expander::PCA9539;
 //! use pca9539::expander::PinID::Pin1;
-//! use embedded_hal::digital::v2::InputPin;
+//! use embedded_hal::digital::InputPin;
 //!
 //! let i2c_bus = DummyI2CBus::default();
 //! let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
 //!
-//! let pin01 = pins.get_pin(Bank0, Pin1);
+//! let mut pin01 = pins.get_pin(Bank0, Pin1);
 //! assert!(pin01.is_high().unwrap());
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(feature = "strict", deny(warnings))]

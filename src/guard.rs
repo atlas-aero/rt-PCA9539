@@ -5,12 +5,11 @@
 use crate::expander::PCA9539;
 use core::cell::RefCell;
 use core::ops::DerefMut;
-use embedded_hal::blocking::i2c::{Read, Write};
 
 /// Manages the access of pins to expander reference
 pub trait RefGuard<B>
 where
-    B: Write + Read<u8>,
+    B: I2c<SevenBitAddress>,
 {
     fn access<F>(&self, f: F)
     where
@@ -20,12 +19,12 @@ where
 /// Guard which is neither Send or Sync, but is the most efficient
 pub struct LockFreeGuard<'a, B>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
 {
     expander: RefCell<&'a mut PCA9539<B>>,
 }
 
-impl<'a, B: Write + Read> LockFreeGuard<'a, B> {
+impl<'a, B: I2c<SevenBitAddress>> LockFreeGuard<'a, B> {
     pub fn new(expander: RefCell<&'a mut PCA9539<B>>) -> Self {
         LockFreeGuard { expander }
     }
@@ -33,7 +32,7 @@ impl<'a, B: Write + Read> LockFreeGuard<'a, B> {
 
 impl<B> RefGuard<B> for LockFreeGuard<'_, B>
 where
-    B: Write + Read<u8>,
+    B: I2c<SevenBitAddress>,
 {
     fn access<F>(&self, mut f: F)
     where
@@ -45,18 +44,19 @@ where
 
 #[cfg(feature = "cortex-m")]
 use cortex_m::interrupt::Mutex as CsMutex;
+use embedded_hal::i2c::{I2c, SevenBitAddress};
 
 /// Guard bases on Cortex-M mutex, which is using critical sections internally
 #[cfg(feature = "cortex-m")]
 pub struct CsMutexGuard<'a, B>
 where
-    B: Write + Read<u8>,
+    B: I2c<SevenBitAddress>,
 {
     expander: CsMutex<RefCell<&'a mut PCA9539<B>>>,
 }
 
 #[cfg(feature = "cortex-m")]
-impl<'a, B: Write + Read> CsMutexGuard<'a, B> {
+impl<'a, B: I2c<SevenBitAddress>> CsMutexGuard<'a, B> {
     pub fn new(expander: CsMutex<RefCell<&'a mut PCA9539<B>>>) -> Self {
         CsMutexGuard { expander }
     }
@@ -65,7 +65,7 @@ impl<'a, B: Write + Read> CsMutexGuard<'a, B> {
 #[cfg(feature = "cortex-m")]
 impl<B> RefGuard<B> for CsMutexGuard<'_, B>
 where
-    B: Write + Read<u8>,
+    B: I2c<SevenBitAddress>,
 {
     fn access<F>(&self, mut f: F)
     where
@@ -83,13 +83,13 @@ use spin::Mutex as SpinMutex;
 #[cfg(feature = "spin")]
 pub struct SpinGuard<'a, B>
 where
-    B: Write + Read<u8>,
+    B: I2c<SevenBitAddress>,
 {
     expander: SpinMutex<RefCell<&'a mut PCA9539<B>>>,
 }
 
 #[cfg(feature = "spin")]
-impl<'a, B: Write + Read> SpinGuard<'a, B> {
+impl<'a, B: I2c<SevenBitAddress>> SpinGuard<'a, B> {
     pub fn new(expander: SpinMutex<RefCell<&'a mut PCA9539<B>>>) -> Self {
         SpinGuard { expander }
     }
@@ -98,7 +98,7 @@ impl<'a, B: Write + Read> SpinGuard<'a, B> {
 #[cfg(feature = "spin")]
 impl<B> RefGuard<B> for SpinGuard<'_, B>
 where
-    B: Write + Read<u8>,
+    B: I2c<SevenBitAddress>,
 {
     fn access<F>(&self, mut f: F)
     where

@@ -4,10 +4,10 @@
 //!
 //! Due to the I2C overhead, this module offers two options for state management:
 //! * [Regular access mode](RegularAccessMode): The state is synchronously updated when calling
-//! state functions like `is_high()`, causing 1:1 I2C operations for each individual call.
+//!   state functions like `is_high()`, causing 1:1 I2C operations for each individual call.
 //! * [Refresh access mode](RefreshMode): Register states are internally cached. Functions like
-//! `is_high()` are just using the cached state. The state is updated explicitly, but for all pins at once.
-//! In the best case, the I2C overhead is reduced to one eighth. See [below examples](#refreshable-access-mode) for more details.
+//!   `is_high()` are just using the cached state. The state is updated explicitly, but for all pins at once.
+//!   In the best case, the I2C overhead is reduced to one eighth. See [below examples](#refreshable-access-mode) for more details.
 //!
 //! ## Setup
 //! Individual pins can be fetched using [PCA9539](crate::expander::PCA9539) instance.
@@ -199,7 +199,7 @@ impl<B: Write + Read, R: RefGuard<B>> Pins<B, R> {
 /// Currently there are two modes supported:
 /// * Regular: State of the pin is synchronously fetched from I2C bus when calling functions like `is_high()`
 /// * Refreshable: State of all pins is refreshed explicitly and functions like `is_high()` are working on a cached state.
-/// This reducing the I2C overhead
+///   This reducing the I2C overhead
 pub trait AccessMode {}
 
 /// State of the pin is synchronously fetched from I2C bus
@@ -238,7 +238,7 @@ where
     pub(crate) access_mode: PhantomData<A>,
 }
 
-impl<'a, B, R, A> Pin<'a, B, R, Input, A>
+impl<B, R, A> Pin<'_, B, R, Input, A>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -256,7 +256,7 @@ where
     }
 }
 
-impl<'a, B, R, A> Pin<'a, B, R, Output, A>
+impl<B, R, A> Pin<'_, B, R, Output, A>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -273,7 +273,7 @@ where
     }
 }
 
-impl<'a, B, M, R, A> Pin<'a, B, R, M, A>
+impl<B, M, R, A> Pin<'_, B, R, M, A>
 where
     B: Write + Read,
     R: RefGuard<B>,

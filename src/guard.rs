@@ -31,7 +31,7 @@ impl<'a, B: Write + Read> LockFreeGuard<'a, B> {
     }
 }
 
-impl<'a, B> RefGuard<B> for LockFreeGuard<'a, B>
+impl<B> RefGuard<B> for LockFreeGuard<'_, B>
 where
     B: Write + Read<u8>,
 {
@@ -63,7 +63,7 @@ impl<'a, B: Write + Read> CsMutexGuard<'a, B> {
 }
 
 #[cfg(feature = "cortex-m")]
-impl<'a, B> RefGuard<B> for CsMutexGuard<'a, B>
+impl<B> RefGuard<B> for CsMutexGuard<'_, B>
 where
     B: Write + Read<u8>,
 {
@@ -96,7 +96,7 @@ impl<'a, B: Write + Read> SpinGuard<'a, B> {
 }
 
 #[cfg(feature = "spin")]
-impl<'a, B> RefGuard<B> for SpinGuard<'a, B>
+impl<B> RefGuard<B> for SpinGuard<'_, B>
 where
     B: Write + Read<u8>,
 {

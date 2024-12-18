@@ -22,7 +22,7 @@ where
     }
 }
 
-impl<'a, B, R> InputPin for Pin<'a, B, R, Input, RegularAccessMode>
+impl<B, R> InputPin for Pin<'_, B, R, Input, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<'a, B, R> OutputPin for Pin<'a, B, R, Output, RegularAccessMode>
+impl<B, R> OutputPin for Pin<'_, B, R, Output, RegularAccessMode>
 where
     B: Read + Write,
     R: RefGuard<B>,
@@ -74,7 +74,7 @@ where
     }
 }
 
-impl<'a, B, R> StatefulOutputPin for Pin<'a, B, R, Output, RegularAccessMode>
+impl<B, R> StatefulOutputPin for Pin<'_, B, R, Output, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -90,7 +90,7 @@ where
     }
 }
 
-impl<'a, B, R> toggleable::Default for Pin<'a, B, R, Output, RegularAccessMode>
+impl<B, R> toggleable::Default for Pin<'_, B, R, Output, RegularAccessMode>
 where
     B: Write + Read,
     R: RefGuard<B>,

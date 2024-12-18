@@ -31,7 +31,7 @@ impl<'a, B: Write + Read> LockFreeGuard<'a, B> {
     }
 }
 
-impl<'a, B> RefGuard<B> for LockFreeGuard<'a, B>
+impl<B> RefGuard<B> for LockFreeGuard<'_, B>
 where
     B: Write + Read<u8>,
 {

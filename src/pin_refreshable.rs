@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<'a, B, R> RefreshableInputPin for Pin<'a, B, R, Input, RefreshMode>
+impl<B, R> RefreshableInputPin for Pin<'_, B, R, Input, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -75,7 +75,7 @@ where
     }
 }
 
-impl<'a, B, R> RefreshableOutputPin for Pin<'a, B, R, Output, RefreshMode>
+impl<B, R> RefreshableOutputPin for Pin<'_, B, R, Output, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<'a, B, R> Pin<'a, B, R, Output, RefreshMode>
+impl<B, R> Pin<'_, B, R, Output, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -111,7 +111,7 @@ where
     }
 }
 
-impl<'a, B, R> InputPin for Pin<'a, B, R, Input, RefreshMode>
+impl<B, R> InputPin for Pin<'_, B, R, Input, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -133,7 +133,7 @@ where
     }
 }
 
-impl<'a, B, R> OutputPin for Pin<'a, B, R, Output, RefreshMode>
+impl<B, R> OutputPin for Pin<'_, B, R, Output, RefreshMode>
 where
     B: Read + Write,
     R: RefGuard<B>,
@@ -157,7 +157,7 @@ where
     }
 }
 
-impl<'a, B, R> StatefulOutputPin for Pin<'a, B, R, Output, RefreshMode>
+impl<B, R> StatefulOutputPin for Pin<'_, B, R, Output, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,
@@ -171,7 +171,7 @@ where
     }
 }
 
-impl<'a, B, R> toggleable::Default for Pin<'a, B, R, Output, RefreshMode>
+impl<B, R> toggleable::Default for Pin<'_, B, R, Output, RefreshMode>
 where
     B: Write + Read,
     R: RefGuard<B>,

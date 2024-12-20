@@ -1,30 +1,29 @@
-use embedded_hal::blocking::i2c::{Read, SevenBitAddress, Write};
+use embedded_hal::i2c::{Error, ErrorKind, ErrorType, I2c, Operation, SevenBitAddress};
 use mockall::mock;
 
 #[derive(Debug, PartialEq)]
 #[allow(unused)]
-pub enum WriteError {
-    Error1,
-}
-
-#[derive(Debug, PartialEq)]
-#[allow(unused)]
-pub enum ReadError {
-    Error1,
+pub enum DummyError {
+    ReadError,
+    WriteError,
 }
 
 mock! {
     #[derive(Debug)]
     pub I2CBus{}
 
-    impl Write<SevenBitAddress> for I2CBus {
-        type Error = WriteError;
-        fn write(&mut self, address: SevenBitAddress, bytes: &[u8]) -> Result<(), WriteError>;
+    impl I2c<SevenBitAddress> for I2CBus {
+        fn transaction<'a>(&mut self, address: SevenBitAddress, operations: &mut [Operation<'a>]) -> Result<(), DummyError>;
     }
+}
 
-    impl Read<SevenBitAddress> for I2CBus {
-        type Error = ReadError;
-        fn read(&mut self, address: SevenBitAddress, buffer: &mut [u8]) -> Result<(), ReadError>;
+impl ErrorType for MockI2CBus {
+    type Error = DummyError;
+}
+
+impl Error for DummyError {
+    fn kind(&self) -> ErrorKind {
+        ErrorKind::Other
     }
 }
 
@@ -38,50 +37,82 @@ impl BusMockBuilder {
     }
 
     /// Expect the given number of write calls without any assertions
-    pub fn mock_write(mut self, times: usize) -> Self {
-        self.bus.expect_write().times(times).returning(move |_, _| Ok(()));
+    pub fn mock_transaction(mut self, times: usize) -> Self {
+        self.bus.expect_transaction().times(times).returning(move |_, _| Ok(()));
         self
     }
 
     pub fn expect_write(mut self, times: usize, data: &[u8]) -> Self {
         let data_vec = data.to_vec();
 
-        self.bus.expect_write().times(times).returning(move |address, buffer| {
-            assert_eq!(0x74, address);
-            assert_eq!(data_vec.len(), buffer.len());
-            assert_eq!(data_vec.as_slice(), buffer);
-            Ok(())
-        });
+        self.bus
+            .expect_transaction()
+            .times(times)
+            .returning(move |address, operations| {
+                assert_eq!(1, operations.len());
+                assert_eq!(0x74, address);
+
+                match operations[0] {
+                    Operation::Read(_) => panic!("Expected write operation"),
+                    Operation::Write(buffer) => {
+                        assert_eq!(data_vec.len(), buffer.len());
+                        assert_eq!(data_vec.as_slice(), buffer);
+                    }
+                }
+
+                Ok(())
+            });
 
         self
     }
 
     pub fn expect_read(mut self, times: usize, data: u8) -> Self {
-        self.bus.expect_read().times(times).returning(move |address, buffer| {
-            assert_eq!(0x74, address);
-            assert_eq!(1, buffer.len());
-            buffer[0] = data;
+        self.bus
+            .expect_transaction()
+            .times(times)
+            .returning(move |address, operations| {
+                assert_eq!(1, operations.len());
+                assert_eq!(0x74, address);
 
-            Ok(())
-        });
+                match &mut operations[0] {
+                    Operation::Read(buffer) => {
+                        assert_eq!(1, buffer.len());
+                        buffer[0] = data;
+                    }
+                    Operation::Write(_) => panic!("Expected read operation"),
+                }
+
+                Ok(())
+            });
 
         self
     }
 
     pub fn write_error(mut self, command: u8) -> Self {
-        self.bus.expect_write().times(1).returning(move |address, buffer| {
+        self.bus.expect_transaction().times(1).returning(move |address, operations| {
             assert_eq!(0x74, address);
-            assert_eq!(command, buffer[0]);
-            Err(WriteError::Error1)
+
+            match operations[0] {
+                Operation::Read(_) => panic!("Expected write operation"),
+                Operation::Write(buffer) => {
+                    assert_eq!(command, buffer[0]);
+                }
+            }
+
+            Err(DummyError::WriteError)
         });
 
         self
     }
 
     pub fn read_error(mut self) -> Self {
-        self.bus.expect_read().times(1).returning(move |address, _| {
+        self.bus.expect_transaction().times(1).returning(move |address, operations| {
             assert_eq!(0x74, address);
-            Err(ReadError::Error1)
+            if let Operation::Write(_) = operations[0] {
+                panic!("Expected read operation");
+            }
+
+            Err(DummyError::ReadError)
         });
 
         self

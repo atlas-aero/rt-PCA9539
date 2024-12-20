@@ -31,12 +31,12 @@
 //!# use pca9539::expander::Bank::{Bank0, Bank1};
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::{Pin1, Pin2, Pin4};
-//!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
+//!# use embedded_hal::digital::{InputPin, PinState, OutputPin};
 //!#
 //!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
-//! let pin12 = pins.get_pin(Bank1, Pin2);
+//! let mut pin12 = pins.get_pin(Bank1, Pin2);
 //! let mut  pin04 = pins.get_pin(Bank0, Pin4).into_output_pin(PinState::Low).unwrap();
 //!
 //! // Fetching input state of Pin12
@@ -60,15 +60,15 @@
 //!# use pca9539::expander::Bank::{Bank0, Bank1};
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
-//!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
+//!# use embedded_hal::digital::{InputPin, PinState, OutputPin};
 //!# use pca9539::pins::RefreshableInputPin;
 //!#
 //!# let i2c_bus = DummyI2CBus::default();
 //!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
 //! let pins = expander.pins();
-//! let pin00 = pins.get_refreshable_pin(Bank0, Pin0);
-//! let pin10 = pins.get_refreshable_pin(Bank1, Pin0);
-//! let pin11 = pins.get_refreshable_pin(Bank1, Pin1);
+//! let mut pin00 = pins.get_refreshable_pin(Bank0, Pin0);
+//! let mut pin10 = pins.get_refreshable_pin(Bank1, Pin0);
+//! let mut pin11 = pins.get_refreshable_pin(Bank1, Pin1);
 //!
 //! // Updates the input state of just Bank1. So input state of Pin10 and Pin11 is now up2date
 //! pin10.refresh_bank().unwrap();
@@ -85,7 +85,7 @@
 //!# use pca9539::expander::Bank::{Bank0, Bank1};
 //!# use pca9539::expander::PCA9539;
 //!# use pca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
-//!# use embedded_hal::digital::v2::{InputPin, IoPin, PinState, OutputPin};
+//!# use embedded_hal::digital::{InputPin, PinState, OutputPin};
 //!# use pca9539::pins::RefreshableOutputPin;
 //!#
 //!# let i2c_bus = DummyI2CBus::default();
@@ -160,18 +160,17 @@
 //! ```
 use crate::expander::{Bank, Mode, PinID};
 use crate::guard::RefGuard;
-use core::marker::PhantomData;
-use embedded_hal::blocking::i2c::{Read, Write};
-
 pub use crate::pin_refreshable::{RefreshableInputPin, RefreshableOutputPin};
+use core::marker::PhantomData;
+use embedded_hal::i2c::{I2c, SevenBitAddress};
 
 /// Container for fetching individual pins
-pub struct Pins<B: Write + Read, R: RefGuard<B>> {
+pub struct Pins<B: I2c<SevenBitAddress>, R: RefGuard<B>> {
     guard: R,
     bus: PhantomData<fn(B) -> B>,
 }
 
-impl<B: Write + Read, R: RefGuard<B>> Pins<B, R> {
+impl<B: I2c<SevenBitAddress>, R: RefGuard<B>> Pins<B, R> {
     pub fn new(guard: R) -> Self {
         Self {
             guard,
@@ -224,7 +223,7 @@ impl PinMode for Output {}
 /// Individual GPIO pin
 pub struct Pin<'a, B, R, M, A>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
     M: PinMode,
     A: AccessMode,
@@ -240,12 +239,12 @@ where
 
 impl<B, R, A> Pin<'_, B, R, Input, A>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
     A: AccessMode,
 {
     /// Reverses/Resets the input polarity
-    pub fn invert_polarity(&self, invert: bool) -> Result<(), <B as Write>::Error> {
+    pub fn invert_polarity(&self, invert: bool) -> Result<(), B::Error> {
         let mut result = Ok(());
 
         self.expander.access(|expander| {
@@ -258,7 +257,7 @@ where
 
 impl<B, R, A> Pin<'_, B, R, Output, A>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
     A: AccessMode,
 {
@@ -275,13 +274,13 @@ where
 
 impl<B, M, R, A> Pin<'_, B, R, M, A>
 where
-    B: Write + Read,
+    B: I2c<SevenBitAddress>,
     R: RefGuard<B>,
     M: PinMode,
     A: AccessMode,
 {
     /// Switches the pin to the given mode
-    pub(crate) fn change_mode(&self, mode: Mode) -> Result<(), <B as Write>::Error> {
+    pub(crate) fn change_mode(&self, mode: Mode) -> Result<(), B::Error> {
         let mut result = Ok(());
 
         self.expander.access(|expander| {

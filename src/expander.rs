@@ -320,6 +320,20 @@ where
         }
     }
 
+    /// (Re)writes the internal state (mode, polarity, output state) to the configuration registers.
+    /// May be useful after power resenting the expander IC to ensure the software matches the
+    /// hardware state.
+    pub fn sync_state(&mut self) -> Result<(), B::Error> {
+        self.write_polarity(Bank::Bank0)?;
+        self.write_polarity(Bank::Bank1)?;
+
+        self.write_output_state(Bank::Bank0)?;
+        self.write_output_state(Bank::Bank1)?;
+
+        self.write_conf(Bank::Bank0)?;
+        self.write_conf(Bank::Bank1)
+    }
+
     /// Reads and returns the given input register
     fn read_input_register(&mut self, command: u8) -> Result<u8, RefreshInputError<B>> {
         self.bus

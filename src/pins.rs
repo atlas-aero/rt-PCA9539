@@ -289,4 +289,17 @@ where
 
         result
     }
+
+    /// (Re)writes the internal state (mode, polarity, output state) of all banks to the configuration registers.
+    /// May be useful after power resenting the expander IC to ensure the software matches the
+    /// hardware state.
+    pub fn sync_state(&self) -> Result<(), B::Error> {
+        let mut result = Ok(());
+
+        self.expander.access(|expander| {
+            result = expander.sync_state();
+        });
+
+        result
+    }
 }

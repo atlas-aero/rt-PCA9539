@@ -942,6 +942,169 @@ fn test_refreshable_pin_invert_polarity_error() {
     assert_eq!(DummyError::WriteError, result.unwrap_err());
 }
 
+#[test]
+fn test_expander_sync_state_success() {
+    let i2c_bus = BusMockBuilder::new()
+        // Initial state
+        .expect_write(1, &[0x04, 0b0001_0000])
+        .expect_write(1, &[0x05, 0b0000_0100])
+        .expect_write(1, &[0x06, 0b1110_1111])
+        .expect_write(1, &[0x02, 0b1111_1111])
+        .expect_write(1, &[0x07, 0b1111_1011])
+        .expect_write(1, &[0x03, 0b1111_1111])
+        .expect_write(1, &[0x07, 0b1101_1011])
+        .expect_write(1, &[0x03, 0b1101_1111])
+        // Sync of polarity register
+        .expect_write(1, &[0x04, 0b0001_0000])
+        .expect_write(1, &[0x05, 0b0000_0100])
+        // Sync of output state register
+        .expect_write(1, &[0x02, 0b1111_1111])
+        .expect_write(1, &[0x03, 0b1101_1111])
+        // Sync of pin mode register
+        .expect_write(1, &[0x06, 0b1110_1111])
+        .expect_write(1, &[0x07, 0b1101_1011])
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+
+    let pins = get_pins(&mut expander);
+    let pin1 = pins.get_pin(Bank0, Pin4);
+    let pin2 = pins.get_pin(Bank1, Pin2);
+    let pin3 = pins.get_pin(Bank1, Pin5);
+
+    // Set initial state
+    pin1.invert_polarity(true).unwrap();
+    pin2.invert_polarity(true).unwrap();
+    pin1.into_output_pin(PinState::High).unwrap();
+    pin2.into_output_pin(PinState::High).unwrap();
+    pin3.into_output_pin(PinState::Low).unwrap();
+
+    expander.sync_state().unwrap();
+}
+
+#[test]
+fn test_expander_sync_state_error_polarity_registers() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x4).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+    assert_eq!(DummyError::WriteError, expander.sync_state().unwrap_err());
+}
+
+#[test]
+fn test_expander_sync_state_error_output_state_registers() {
+    let i2c_bus = BusMockBuilder::new()
+        // Sync of polarity register
+        .expect_write(1, &[0x04, 0b0000_0000])
+        .expect_write(1, &[0x05, 0b0000_0000])
+        // Pin state register
+        .write_error(0x2)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+    assert_eq!(DummyError::WriteError, expander.sync_state().unwrap_err());
+}
+
+#[test]
+fn test_expander_sync_state_error_pin_mode_registers() {
+    let i2c_bus = BusMockBuilder::new()
+        // Sync of polarity register
+        .expect_write(1, &[0x04, 0b0000_0000])
+        .expect_write(1, &[0x05, 0b0000_0000])
+        // Pin state register
+        .expect_write(1, &[0x02, 0b1111_1111])
+        .expect_write(1, &[0x03, 0b1111_1111])
+        // Pin mode register
+        .write_error(0x06)
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+    assert_eq!(DummyError::WriteError, expander.sync_state().unwrap_err());
+}
+
+#[test]
+fn test_regular_pin_sync_state() {
+    let i2c_bus = BusMockBuilder::new()
+        // Initial state
+        .expect_write(1, &[0x04, 0b0100_0000])
+        .expect_write(1, &[0x06, 0b1011_1111])
+        .expect_write(1, &[0x02, 0b1011_1111])
+        // Sync. Polarity registers
+        .expect_write(1, &[0x04, 0b0100_0000])
+        .expect_write(1, &[0x05, 0b0000_0000])
+        // Sync. Output state registers
+        .expect_write(1, &[0x02, 0b1011_1111])
+        .expect_write(1, &[0x03, 0b1111_1111])
+        // Sync. output mode registers
+        .expect_write(1, &[0x06, 0b1011_1111])
+        .expect_write(1, &[0x07, 0b1111_1111])
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+
+    let pins = get_pins(&mut expander);
+    let pin = pins.get_pin(Bank0, Pin6);
+
+    // Initial state
+    pin.invert_polarity(true).unwrap();
+    let pin = pin.into_output_pin(PinState::Low).unwrap();
+
+    pin.sync_state().unwrap();
+}
+
+#[test]
+fn test_regular_pin_sync_state_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x4).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+
+    let pins = get_pins(&mut expander);
+    let pin = pins.get_pin(Bank0, Pin6);
+
+    assert_eq!(DummyError::WriteError, pin.sync_state().unwrap_err());
+}
+
+#[test]
+fn test_refreshable_pin_sync_state() {
+    let i2c_bus = BusMockBuilder::new()
+        // Initial state
+        .expect_write(1, &[0x05, 0b0000_1000])
+        .expect_write(1, &[0x07, 0b1111_0111])
+        .expect_write(1, &[0x03, 0b1111_0111])
+        // Sync. Polarity registers
+        .expect_write(1, &[0x04, 0b0000_0000])
+        .expect_write(1, &[0x05, 0b0000_1000])
+        // Sync. Output state registers
+        .expect_write(1, &[0x02, 0b1111_1111])
+        .expect_write(1, &[0x03, 0b1111_0111])
+        // Sync. output mode registers
+        .expect_write(1, &[0x06, 0b1111_1111])
+        .expect_write(1, &[0x07, 0b1111_0111])
+        .into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+
+    let pins = get_pins(&mut expander);
+    let pin = pins.get_refreshable_pin(Bank1, Pin3);
+
+    // Initial state
+    pin.invert_polarity(true).unwrap();
+    let pin = pin.into_output_pin(PinState::Low).unwrap();
+
+    pin.sync_state().unwrap();
+}
+
+#[test]
+fn test_refreshable_pin_sync_state_error() {
+    let i2c_bus = BusMockBuilder::new().write_error(0x4).into_mock();
+
+    let mut expander = PCA9539::new(i2c_bus, 0x74);
+
+    let pins = get_pins(&mut expander);
+    let pin = pins.get_pin(Bank1, Pin2);
+
+    assert_eq!(DummyError::WriteError, pin.sync_state().unwrap_err());
+}
+
 /// Testing spin based RefGuard
 #[cfg(feature = "spin")]
 fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, SpinGuard<'_, MockI2CBus>> {

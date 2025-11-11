@@ -212,7 +212,7 @@ where
     /// This is the most efficient way of using individual pins
     /// The downside is, that these pins are neither Send or Sync, so can only be used in single-threaded
     /// and interrupt-free applications
-    pub fn pins(&mut self) -> Pins<B, LockFreeGuard<B>> {
+    pub fn pins(&mut self) -> Pins<B, LockFreeGuard<'_, B>> {
         Pins::new(LockFreeGuard::new(RefCell::new(self)))
     }
 

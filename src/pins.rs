@@ -180,7 +180,7 @@ impl<B: I2c<SevenBitAddress>, R: RefGuard<B>> Pins<B, R> {
 
     /// Returns an individual pin, which state gets updated synchronously
     /// **The library does not prevent multiple parallel instances of the same pin.**
-    pub fn get_pin(&self, bank: Bank, id: PinID) -> Pin<B, R, Input, RegularAccessMode> {
+    pub fn get_pin(&self, bank: Bank, id: PinID) -> Pin<'_, B, R, Input, RegularAccessMode> {
         Pin::regular(&self.guard, bank, id)
     }
 
@@ -188,7 +188,7 @@ impl<B: I2c<SevenBitAddress>, R: RefGuard<B>> Pins<B, R> {
     /// The status is explicitly updated. This allows a more efficient status query and assignment,
     /// as the status is only updated once for all pins.
     /// **The library does not prevent multiple parallel instances of the same pin.**
-    pub fn get_refreshable_pin(&self, bank: Bank, id: PinID) -> Pin<B, R, Input, RefreshMode> {
+    pub fn get_refreshable_pin(&self, bank: Bank, id: PinID) -> Pin<'_, B, R, Input, RefreshMode> {
         Pin::refreshable(&self.guard, bank, id)
     }
 }

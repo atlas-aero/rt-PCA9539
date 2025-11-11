@@ -950,6 +950,6 @@ fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, SpinGuard<Mo
 
 /// Testing lock-free RefGuard
 #[cfg(not(feature = "spin"))]
-fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, LockFreeGuard<MockI2CBus>> {
+fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, LockFreeGuard<'_, MockI2CBus>> {
     expander.pins()
 }

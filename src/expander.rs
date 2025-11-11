@@ -219,7 +219,7 @@ where
     /// Returns a pins container using Mutex based on critical sections
     /// Individual pins can be used across threads and interrupts, as long just running on a single core
     #[cfg(feature = "cortex-m")]
-    pub fn pins_cs_mutex(&mut self) -> Pins<B, CsMutexGuard<B>> {
+    pub fn pins_cs_mutex(&mut self) -> Pins<B, CsMutexGuard<'_, B>> {
         Pins::new(CsMutexGuard::new(CsMutex::new(RefCell::new(self))))
     }
 
@@ -228,7 +228,7 @@ where
     /// However, this requires a system supporting spin mutexes, which are generally only
     /// available on systems with Atomic CAS
     #[cfg(feature = "spin")]
-    pub fn pins_spin_mutex(&mut self) -> Pins<B, SpinGuard<B>> {
+    pub fn pins_spin_mutex(&mut self) -> Pins<B, SpinGuard<'_, B>> {
         Pins::new(SpinGuard::new(SpinMutex::new(RefCell::new(self))))
     }
 

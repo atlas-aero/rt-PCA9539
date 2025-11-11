@@ -82,6 +82,20 @@
 //!#
 //! expander.reverse_polarity(Bank0, Pin3, true).unwrap();
 //! ```
+//! ## (Re)sync the internal state
+//! If needed, e.g. in case of IC reset, the complete internal state (polarity, mode, output state)
+//! may be resent.
+//! ```
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::Bank0;
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin1, Pin3};
+//!#
+//!# let i2c_bus = DummyI2CBus::default();
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
+//!#
+//! expander.sync_state().unwrap();
+//! ```
 
 #[cfg(feature = "cortex-m")]
 use crate::guard::CsMutexGuard;

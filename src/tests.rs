@@ -944,12 +944,12 @@ fn test_refreshable_pin_invert_polarity_error() {
 
 /// Testing spin based RefGuard
 #[cfg(feature = "spin")]
-fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, SpinGuard<MockI2CBus>> {
+fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, SpinGuard<'_, MockI2CBus>> {
     expander.pins_spin_mutex()
 }
 
 /// Testing lock-free RefGuard
 #[cfg(not(feature = "spin"))]
-fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, LockFreeGuard<MockI2CBus>> {
+fn get_pins(expander: &mut PCA9539<MockI2CBus>) -> Pins<MockI2CBus, LockFreeGuard<'_, MockI2CBus>> {
     expander.pins()
 }

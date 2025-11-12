@@ -9,6 +9,7 @@ use crate::guard::SpinGuard;
 use crate::mocks::{BusMockBuilder, DummyError, MockI2CBus};
 use crate::pin_refreshable::{RefreshableInputPin, RefreshableOutputPin};
 use crate::pins::Pins;
+use crate::sync_state::SyncState;
 use embedded_hal::digital::{InputPin, OutputPin, PinState, StatefulOutputPin};
 
 #[test]

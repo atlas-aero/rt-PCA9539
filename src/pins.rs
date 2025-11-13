@@ -158,9 +158,30 @@
 //!# #[cfg(feature = "spin")]
 //! let pins = expander.pins_spin_mutex();
 //! ```
+//! ## (Re)sync the internal state
+//! If needed, e.g. in case of IC reset, the complete internal state (polarity, mode, output state)
+//! may be resent.
+//!
+//! If called the method sends the state of **all banks**, not just the bank of the given pin.
+//! ```
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::{Bank0, Bank1};
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin0, Pin1, Pin2, Pin3, Pin4};
+//!# use embedded_hal::digital::{InputPin, PinState, OutputPin};
+//!# use pca9539::pins::RefreshableOutputPin;
+//!# use crate::pca9539::sync_state::SyncState;
+//!#
+//!# let i2c_bus = DummyI2CBus::default();
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
+//!# let pins = expander.pins();
+//! let pin = pins.get_refreshable_pin(Bank0, Pin0);
+//! pin.sync_state().unwrap();
+//! ```
 use crate::expander::{Bank, Mode, PinID};
 use crate::guard::RefGuard;
 pub use crate::pin_refreshable::{RefreshableInputPin, RefreshableOutputPin};
+use crate::sync_state::SyncState;
 use core::marker::PhantomData;
 use embedded_hal::i2c::{I2c, SevenBitAddress};
 
@@ -285,6 +306,26 @@ where
 
         self.expander.access(|expander| {
             result = expander.set_mode(self.bank, self.id, mode);
+        });
+
+        result
+    }
+}
+
+impl<B, M, R, A> SyncState for Pin<'_, B, R, M, A>
+where
+    B: I2c<SevenBitAddress>,
+    R: RefGuard<B>,
+    M: PinMode,
+    A: AccessMode,
+{
+    type Error = B::Error;
+
+    fn sync_state(&self) -> Result<(), B::Error> {
+        let mut result = Ok(());
+
+        self.expander.access(|expander| {
+            result = expander.sync_state();
         });
 
         result

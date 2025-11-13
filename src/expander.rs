@@ -82,6 +82,20 @@
 //!#
 //! expander.reverse_polarity(Bank0, Pin3, true).unwrap();
 //! ```
+//! ## (Re)sync the internal state
+//! If needed, e.g. in case of IC reset, the complete internal state (polarity, mode, output state)
+//! may be resent.
+//! ```
+//!# use pca9539::example::DummyI2CBus;
+//!# use pca9539::expander::Bank::Bank0;
+//!# use pca9539::expander::PCA9539;
+//!# use pca9539::expander::PinID::{Pin1, Pin3};
+//!#
+//!# let i2c_bus = DummyI2CBus::default();
+//!# let mut  expander = PCA9539::new(i2c_bus, 0x74);
+//!#
+//! expander.sync_state().unwrap();
+//! ```
 
 #[cfg(feature = "cortex-m")]
 use crate::guard::CsMutexGuard;
@@ -318,6 +332,20 @@ where
             Bank::Bank0 => self.output_0.get(id as usize),
             Bank::Bank1 => self.output_1.get(id as usize),
         }
+    }
+
+    /// (Re)writes the internal state (mode, polarity, output state) to the configuration registers.
+    /// May be useful after power resenting the expander IC to ensure the software matches the
+    /// hardware state.
+    pub fn sync_state(&mut self) -> Result<(), B::Error> {
+        self.write_polarity(Bank::Bank0)?;
+        self.write_polarity(Bank::Bank1)?;
+
+        self.write_output_state(Bank::Bank0)?;
+        self.write_output_state(Bank::Bank1)?;
+
+        self.write_conf(Bank::Bank0)?;
+        self.write_conf(Bank::Bank1)
     }
 
     /// Reads and returns the given input register

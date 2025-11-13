@@ -35,6 +35,7 @@ pub mod pins;
 
 pub(crate) mod pin_refreshable;
 pub(crate) mod pin_regular;
+pub mod sync_state;
 
 #[cfg(test)]
 mod mocks;
